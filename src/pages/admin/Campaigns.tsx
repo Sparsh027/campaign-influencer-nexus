@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -126,7 +125,15 @@ export default function AdminCampaigns() {
 
   const onCreateSubmit = async (values: CampaignFormValues) => {
     try {
-      await createCampaign(values);
+      // Fix: Ensure all required properties are passed to createCampaign
+      await createCampaign({
+        title: values.title,
+        description: values.description,
+        minFollowers: values.minFollowers,
+        categories: values.categories,
+        city: values.city,
+        status: values.status,
+      });
       createForm.reset();
       setIsCreateDialogOpen(false);
     } catch (error) {
