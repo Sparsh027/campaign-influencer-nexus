@@ -1,11 +1,11 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { AuthContextType, User } from "../types/auth";
+import { AuthContextType, User, AdminUser, InfluencerUser } from "../types/auth";
 import { toast } from "sonner";
 
 // Mock admin account
-const ADMIN_USER: User = {
+const ADMIN_USER: AdminUser = {
   id: "admin-1",
   email: "admin@dotfluence.com",
   name: "Admin User",
@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!mockUser) {
         // For demo, auto-create influencer users that don't exist
         if (email !== "admin@dotfluence.com") {
-          const newUser: User = {
+          const newUser: InfluencerUser = {
             id: `influencer-${Date.now()}`,
             email: lowercaseEmail,
             name: email.split("@")[0],
@@ -86,7 +86,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (mockUser.role === "admin") {
         navigate("/admin/dashboard");
       } else if (mockUser.role === "influencer") {
-        if (!mockUser.profileCompleted) {
+        const influencerUser = mockUser as InfluencerUser;
+        if (!influencerUser.profileCompleted) {
           navigate("/complete-profile");
         } else {
           navigate("/influencer/dashboard");
@@ -120,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       // Create new influencer user
-      const newUser: User = {
+      const newUser: InfluencerUser = {
         id: `influencer-${Date.now()}`,
         email: lowercaseEmail,
         name: email.split("@")[0],
@@ -151,18 +152,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     toast.success("Logged out successfully");
   };
 
-  const updateProfile = async (data: Partial<User>) => {
+  const updateProfile = async (data: Partial<InfluencerUser>) => {
     if (!user) throw new Error("Not authenticated");
     
     // Mock API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    const updatedUser = { ...user, ...data };
-    MOCK_USERS[user.email] = updatedUser;
-    setUser(updatedUser);
-    localStorage.setItem("dotfluence-user", JSON.stringify(updatedUser));
-    
-    return;
+    if (user.role === "influencer") {
+      const updatedUser: InfluencerUser = { ...(user as InfluencerUser), ...data };
+      MOCK_USERS[user.email] = updatedUser;
+      setUser(updatedUser);
+      localStorage.setItem("dotfluence-user", JSON.stringify(updatedUser));
+    } else {
+      throw new Error("Only influencers can update their profile");
+    }
   };
 
   return (

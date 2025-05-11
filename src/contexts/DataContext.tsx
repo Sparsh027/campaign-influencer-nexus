@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Campaign, Application, Message, Notification } from "../types/data";
-import { User } from "../types/auth";
+import { User, InfluencerUser } from "../types/auth";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
 
@@ -13,7 +13,7 @@ interface DataContextType {
   deleteCampaign: (id: string) => Promise<void>;
   
   // Influencers
-  influencers: User[];
+  influencers: InfluencerUser[];
   blockInfluencer: (id: string) => Promise<void>;
   deleteInfluencer: (id: string) => Promise<void>;
   
@@ -32,7 +32,7 @@ interface DataContextType {
   
   // Filtering
   getEligibleCampaigns: () => Campaign[];
-  getEligibleInfluencers: (campaignId: string) => User[];
+  getEligibleInfluencers: (campaignId: string) => InfluencerUser[];
   isInfluencerEligible: (campaignId: string, influencerId?: string) => boolean;
   hasApplied: (campaignId: string) => boolean;
 }
@@ -49,7 +49,7 @@ const SAMPLE_CITIES = [
 ];
 
 // Generate sample influencers
-const generateInfluencers = (count: number): User[] => {
+const generateInfluencers = (count: number): InfluencerUser[] => {
   return Array.from({ length: count }).map((_, i) => ({
     id: `influencer-${i + 1}`,
     email: `influencer${i + 1}@example.com`,
@@ -94,7 +94,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
 
-  const [influencers, setInfluencers] = useState<User[]>(SAMPLE_INFLUENCERS);
+  const [influencers, setInfluencers] = useState<InfluencerUser[]>(SAMPLE_INFLUENCERS);
   const [campaigns, setCampaigns] = useState<Campaign[]>(SAMPLE_CAMPAIGNS);
   const [applications, setApplications] = useState<Application[]>(SAMPLE_APPLICATIONS);
   const [messages, setMessages] = useState<Message[]>(SAMPLE_MESSAGES);
@@ -298,16 +298,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return [];
     }
     
+    const influencerUser = user as InfluencerUser;
+    
     return campaigns.filter(campaign => {
       // Only show active campaigns
       if (campaign.status !== 'active') return false;
       
       // Check eligibility
-      return (user.followerCount || 0) >= campaign.minFollowers &&
+      return (influencerUser.followerCount || 0) >= campaign.minFollowers &&
              (!campaign.categories.length || campaign.categories.some(cat => 
-                user.categories?.includes(cat)
+                influencerUser.categories?.includes(cat)
              )) &&
-             (!campaign.city || user.city === campaign.city);
+             (!campaign.city || influencerUser.city === campaign.city);
     });
   };
   
@@ -330,17 +332,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const campaign = campaigns.find(c => c.id === campaignId);
     if (!campaign) return false;
     
-    const influencer = influencerId 
-      ? influencers.find(i => i.id === influencerId)
-      : user?.role === "influencer" ? user : null;
-      
-    if (!influencer) return false;
+    let influencerUser: InfluencerUser | null = null;
     
-    return (influencer.followerCount || 0) >= campaign.minFollowers &&
+    if (influencerId) {
+      const foundInfluencer = influencers.find(i => i.id === influencerId);
+      if (!foundInfluencer) return false;
+      influencerUser = foundInfluencer;
+    } else if (user?.role === "influencer") {
+      influencerUser = user as InfluencerUser;
+    }
+      
+    if (!influencerUser) return false;
+    
+    return (influencerUser.followerCount || 0) >= campaign.minFollowers &&
            (!campaign.categories.length || campaign.categories.some(cat => 
-             influencer.categories?.includes(cat)
+             influencerUser.categories?.includes(cat)
            )) &&
-           (!campaign.city || influencer.city === campaign.city);
+           (!campaign.city || influencerUser.city === campaign.city);
   };
   
   // Check if current user has applied to a campaign

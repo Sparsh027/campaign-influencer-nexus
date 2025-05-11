@@ -6,6 +6,13 @@ export interface AdminUser {
   email: string;
   name: string;
   role: "admin";
+  // Add empty properties to make type checking easier
+  instagram?: never;
+  followerCount?: never;
+  phone?: never;
+  categories?: never;
+  city?: never;
+  profileCompleted?: never;
 }
 
 export interface InfluencerUser {

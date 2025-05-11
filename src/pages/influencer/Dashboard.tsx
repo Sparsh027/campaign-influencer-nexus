@@ -6,11 +6,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { BarChart, Users, MessageSquare, Bell } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { InfluencerUser } from '@/types/auth';
 
 export default function InfluencerDashboard() {
   const { user } = useAuth();
   const { campaigns, applications, notifications, getEligibleCampaigns } = useData();
   
+  const influencerUser = user as InfluencerUser | null;
   const eligibleCampaigns = getEligibleCampaigns();
   const userApplications = applications.filter(app => app.influencerId === user?.id);
   
@@ -150,7 +152,7 @@ export default function InfluencerDashboard() {
       </div>
       
       {/* Profile completion prompt if needed */}
-      {(!user?.instagram || !user?.followerCount) && (
+      {influencerUser && (!influencerUser.instagram || !influencerUser.followerCount) && (
         <Card className="border-2 border-brand-300 bg-brand-50">
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
