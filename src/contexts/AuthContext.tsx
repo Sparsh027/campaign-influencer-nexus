@@ -16,9 +16,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Initialize auth state and set up listener
   useEffect(() => {
+    console.log("Setting up auth state listener");
+    
     // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log("Auth state changed", event, session?.user?.id);
         setSession(session);
         
         if (session?.user) {
@@ -31,6 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Then check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log("Got existing session", session?.user?.id);
       setSession(session);
       
       if (session?.user) {
@@ -45,9 +49,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  // Handle redirection when user state changes
+  useEffect(() => {
+    if (loading) return;
+    
+    const currentPath = window.location.pathname;
+    console.log("User state changed, current path:", currentPath, "user:", user?.role);
+    
+    if (!user) {
+      // If not authenticated and not already on auth pages, redirect to sign-in
+      if (!currentPath.includes('sign-in') && !currentPath.includes('sign-up')) {
+        navigate('/sign-in');
+      }
+      return;
+    }
+
+    // User is authenticated, handle redirects based on role and path
+    if (user.role === "admin") {
+      // Admin user
+      if (currentPath.includes('sign-in') || currentPath.includes('sign-up') || currentPath === '/') {
+        console.log("Redirecting admin to dashboard");
+        navigate('/admin/dashboard');
+      }
+    } else if (user.role === "influencer") {
+      // Influencer user
+      if (!user.profileCompleted && !currentPath.includes('complete-profile')) {
+        console.log("Redirecting to complete profile");
+        navigate('/complete-profile');
+      } else if (user.profileCompleted && (currentPath.includes('sign-in') || currentPath.includes('sign-up') || currentPath === '/')) {
+        console.log("Redirecting influencer to dashboard");
+        navigate('/influencer/dashboard');
+      }
+    }
+  }, [user, loading, navigate]);
+
   // Fetch user profile data from the database
   const fetchUserProfile = async (authId: string) => {
     try {
+      console.log("Fetching profile for auth ID:", authId);
+      
       // Try to fetch admin profile
       const { data: adminData, error: adminError } = await supabase
         .from('admins')
@@ -56,6 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (adminData) {
+        console.log("Found admin profile:", adminData);
         setUser({
           id: authId,
           dbId: adminData.id,
@@ -64,6 +105,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: "admin"
         });
         return;
+      } else {
+        console.log("No admin profile found, checking for influencer");
       }
 
       // Try to fetch influencer profile
@@ -74,6 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (influencerData) {
+        console.log("Found influencer profile:", influencerData);
         setUser({
           id: authId,
           dbId: influencerData.id,
@@ -103,6 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
+      console.log("Attempting login with email:", email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -110,6 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error;
       
+      console.log("Login successful for:", email);
       toast.success("Logged in successfully!");
       
       // Navigation is handled by the auth state listener
@@ -125,6 +171,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string) => {
     setLoading(true);
     try {
+      console.log("Attempting signup with email:", email);
+      
+      // First check if this is the admin email
+      if (email === "admin@dotfluence.com") {
+        toast.error("This email is reserved for admin use");
+        setLoading(false);
+        return;
+      }
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password
@@ -132,9 +187,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error;
       
-      toast.success("Account created successfully! Please check your email to confirm your registration.");
+      console.log("Signup successful for:", email);
+      toast.success("Account created successfully!");
       
-      // Navigate to complete profile (navigation handled in auth state listener)
+      // Navigation is handled by the auth state listener
     } catch (error: any) {
       console.error("Signup error:", error);
       toast.error(error?.message || "Failed to create account");

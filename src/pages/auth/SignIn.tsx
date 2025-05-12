@@ -50,7 +50,8 @@ export default function SignIn() {
   const handleAdminLogin = async () => {
     setIsLoading(true);
     try {
-      await login('admin@dotfluence.com', 'adminpassword');
+      await login('admin@dotfluence.com', 'password');
+      // Navigation is handled in the AuthContext after successful login
     } catch (error) {
       console.error('Admin login error:', error);
       setIsLoading(false);

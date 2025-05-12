@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
@@ -39,6 +40,11 @@ export default function SignUp() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (values.email === 'admin@dotfluence.com') {
+      toast.error("This email is reserved for admin use");
+      return;
+    }
+    
     setIsLoading(true);
     try {
       await signup(values.email, values.password);
