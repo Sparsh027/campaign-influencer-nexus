@@ -23,9 +23,24 @@ const formSchema = z.object({
 });
 
 export default function SignIn() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = React.useState(false);
+
+  // If user is already logged in, redirect them
+  React.useEffect(() => {
+    if (user) {
+      if (user.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (user.role === 'influencer') {
+        if (user.profileCompleted) {
+          navigate('/influencer/dashboard');
+        } else {
+          navigate('/complete-profile');
+        }
+      }
+    }
+  }, [user, navigate]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -36,24 +51,30 @@ export default function SignIn() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (isLoading) return;
+    
     setIsLoading(true);
     try {
       await login(values.email, values.password);
       // Navigation is handled in the AuthContext after successful login
     } catch (error) {
       console.error('Login error:', error);
+    } finally {
       setIsLoading(false);
     }
   }
 
   // For demo purposes - easy login as admin
   const handleAdminLogin = async () => {
+    if (isLoading) return;
+    
     setIsLoading(true);
     try {
       await login('admin@dotfluence.com', 'password');
       // Navigation is handled in the AuthContext after successful login
     } catch (error) {
       console.error('Admin login error:', error);
+    } finally {
       setIsLoading(false);
     }
   };

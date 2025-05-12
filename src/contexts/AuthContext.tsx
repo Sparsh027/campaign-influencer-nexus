@@ -20,28 +20,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth state changed", event, session?.user?.id);
-        setSession(session);
+      (event, currentSession) => {
+        console.log("Auth state changed", event, currentSession?.user?.id);
         
-        if (session?.user) {
-          await fetchUserProfile(session.user.id);
-        } else {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setSession(currentSession);
+          if (currentSession?.user) {
+            // Use setTimeout to avoid deadlocks with Supabase client
+            setTimeout(() => {
+              fetchUserProfile(currentSession.user.id);
+            }, 0);
+          }
+        } else if (event === 'SIGNED_OUT') {
           setUser(null);
+          setSession(null);
         }
       }
     );
 
     // Then check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log("Got existing session", session?.user?.id);
-      setSession(session);
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log("Got existing session", currentSession?.user?.id);
+      setSession(currentSession);
       
-      if (session?.user) {
-        await fetchUserProfile(session.user.id);
+      if (currentSession?.user) {
+        fetchUserProfile(currentSession.user.id);
+      } else {
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     return () => {
@@ -104,6 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: adminData.name,
           role: "admin"
         });
+        setLoading(false);
         return;
       } else {
         console.log("No admin profile found, checking for influencer");
@@ -131,16 +138,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           city: influencerData.city || undefined,
           profileCompleted: influencerData.profile_completed
         });
+        setLoading(false);
         return;
       }
 
       // If no profile found
       console.error("No profile found for user:", authId);
       setUser(null);
+      setLoading(false);
       
     } catch (error) {
       console.error("Error fetching user profile:", error);
       setUser(null);
+      setLoading(false);
     }
   };
 
@@ -158,13 +168,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("Login successful for:", email);
       toast.success("Logged in successfully!");
       
-      // Navigation is handled by the auth state listener
+      // Navigation will be handled by the auth state listener
+      // We don't need to navigate here
     } catch (error: any) {
       console.error("Login error:", error);
       toast.error(error?.message || "Failed to login");
-      throw error;
-    } finally {
       setLoading(false);
+      throw error;
     }
   };
 
@@ -190,13 +200,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("Signup successful for:", email);
       toast.success("Account created successfully!");
       
-      // Navigation is handled by the auth state listener
+      // Navigation will be handled by the auth state listener
+      // We don't need to navigate here
     } catch (error: any) {
       console.error("Signup error:", error);
       toast.error(error?.message || "Failed to create account");
-      throw error;
-    } finally {
       setLoading(false);
+      throw error;
     }
   };
 

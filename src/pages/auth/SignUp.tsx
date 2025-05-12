@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
@@ -27,8 +27,24 @@ const formSchema = z.object({
 });
 
 export default function SignUp() {
-  const { signup } = useAuth();
+  const { signup, user } = useAuth();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = React.useState(false);
+  
+  // If user is already logged in, redirect them
+  React.useEffect(() => {
+    if (user) {
+      if (user.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else if (user.role === 'influencer') {
+        if (user.profileCompleted) {
+          navigate('/influencer/dashboard');
+        } else {
+          navigate('/complete-profile');
+        }
+      }
+    }
+  }, [user, navigate]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -40,6 +56,8 @@ export default function SignUp() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (isLoading) return;
+    
     if (values.email === 'admin@dotfluence.com') {
       toast.error("This email is reserved for admin use");
       return;
@@ -51,6 +69,7 @@ export default function SignUp() {
       // Navigation is handled in the AuthContext after successful signup
     } catch (error) {
       console.error('Signup error:', error);
+    } finally {
       setIsLoading(false);
     }
   }
