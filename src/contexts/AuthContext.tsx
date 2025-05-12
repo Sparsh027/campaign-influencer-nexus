@@ -3,99 +3,119 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContextType, User, AdminUser, InfluencerUser } from "../types/auth";
 import { toast } from "sonner";
-
-// Mock admin account
-const ADMIN_USER: AdminUser = {
-  id: "admin-1",
-  email: "admin@dotfluence.com",
-  name: "Admin User",
-  role: "admin"
-};
-
-// Mock data storage - in a real app, this would be stored in a database
-const MOCK_USERS: Record<string, User> = {
-  "admin@dotfluence.com": ADMIN_USER
-};
+import { supabase } from "@/integrations/supabase/client";
+import { Session } from "@supabase/supabase-js";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Initialize auth state and set up listener
   useEffect(() => {
-    // Check for saved user in localStorage
-    const savedUser = localStorage.getItem("dotfluence-user");
-    
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error("Failed to parse saved user:", error);
-        localStorage.removeItem("dotfluence-user");
+    // First set up the auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        
+        if (session?.user) {
+          await fetchUserProfile(session.user.id);
+        } else {
+          setUser(null);
+        }
       }
-    }
-    
-    setLoading(false);
+    );
+
+    // Then check for existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
+      
+      if (session?.user) {
+        await fetchUserProfile(session.user.id);
+      }
+      
+      setLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+  // Fetch user profile data from the database
+  const fetchUserProfile = async (authId: string) => {
+    try {
+      // Try to fetch admin profile
+      const { data: adminData, error: adminError } = await supabase
+        .from('admins')
+        .select('*')
+        .eq('auth_id', authId)
+        .single();
+
+      if (adminData) {
+        setUser({
+          id: authId,
+          dbId: adminData.id,
+          email: adminData.email,
+          name: adminData.name,
+          role: "admin"
+        });
+        return;
+      }
+
+      // Try to fetch influencer profile
+      const { data: influencerData, error: influencerError } = await supabase
+        .from('influencers')
+        .select('*')
+        .eq('auth_id', authId)
+        .single();
+
+      if (influencerData) {
+        setUser({
+          id: authId,
+          dbId: influencerData.id,
+          email: influencerData.email,
+          name: influencerData.name,
+          role: "influencer",
+          instagram: influencerData.instagram || undefined,
+          followerCount: influencerData.follower_count || undefined,
+          phone: influencerData.phone || undefined,
+          categories: influencerData.categories || undefined,
+          city: influencerData.city || undefined,
+          profileCompleted: influencerData.profile_completed
+        });
+        return;
+      }
+
+      // If no profile found
+      console.error("No profile found for user:", authId);
+      setUser(null);
+      
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      setUser(null);
+    }
+  };
 
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Mock authentication delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
-      const lowercaseEmail = email.toLowerCase();
-      const mockUser = MOCK_USERS[lowercaseEmail];
+      if (error) throw error;
       
-      if (!mockUser) {
-        // For demo, auto-create influencer users that don't exist
-        if (email !== "admin@dotfluence.com") {
-          const newUser: InfluencerUser = {
-            id: `influencer-${Date.now()}`,
-            email: lowercaseEmail,
-            name: email.split("@")[0],
-            role: "influencer",
-            profileCompleted: false
-          };
-          MOCK_USERS[lowercaseEmail] = newUser;
-          setUser(newUser);
-          localStorage.setItem("dotfluence-user", JSON.stringify(newUser));
-          toast.success("Logged in successfully!");
-          
-          // Navigate to profile completion for new influencers
-          navigate("/complete-profile");
-          return;
-        }
-        throw new Error("Invalid credentials");
-      }
-
-      // Only allow admin login for admin@dotfluence.com
-      if (lowercaseEmail === "admin@dotfluence.com") {
-        if (password !== "adminpassword") {
-          throw new Error("Invalid admin password");
-        }
-      }
-
-      setUser(mockUser);
-      localStorage.setItem("dotfluence-user", JSON.stringify(mockUser));
       toast.success("Logged in successfully!");
       
-      // Navigate based on user role
-      if (mockUser.role === "admin") {
-        navigate("/admin/dashboard");
-      } else if (mockUser.role === "influencer") {
-        const influencerUser = mockUser as InfluencerUser;
-        if (!influencerUser.profileCompleted) {
-          navigate("/complete-profile");
-        } else {
-          navigate("/influencer/dashboard");
-        }
-      }
-    } catch (error) {
+      // Navigation is handled by the auth state listener
+    } catch (error: any) {
       console.error("Login error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to login");
+      toast.error(error?.message || "Failed to login");
       throw error;
     } finally {
       setLoading(false);
@@ -105,66 +125,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Mock signup delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password
+      });
       
-      const lowercaseEmail = email.toLowerCase();
+      if (error) throw error;
       
-      // Don't allow admin signup
-      if (lowercaseEmail === "admin@dotfluence.com") {
-        throw new Error("This email is reserved. Please use a different email.");
-      }
+      toast.success("Account created successfully! Please check your email to confirm your registration.");
       
-      // Check if user already exists
-      if (MOCK_USERS[lowercaseEmail]) {
-        throw new Error("User already exists");
-      }
-      
-      // Create new influencer user
-      const newUser: InfluencerUser = {
-        id: `influencer-${Date.now()}`,
-        email: lowercaseEmail,
-        name: email.split("@")[0],
-        role: "influencer",
-        profileCompleted: false
-      };
-      
-      MOCK_USERS[lowercaseEmail] = newUser;
-      setUser(newUser);
-      localStorage.setItem("dotfluence-user", JSON.stringify(newUser));
-      toast.success("Account created successfully!");
-      
-      // Navigate to profile completion
-      navigate("/complete-profile");
-    } catch (error) {
+      // Navigate to complete profile (navigation handled in auth state listener)
+    } catch (error: any) {
       console.error("Signup error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to create account");
+      toast.error(error?.message || "Failed to create account");
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("dotfluence-user");
-    navigate("/sign-in");
-    toast.success("Logged out successfully");
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      setUser(null);
+      setSession(null);
+      navigate("/sign-in");
+      toast.success("Logged out successfully");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast.error("Error signing out");
+    }
   };
 
   const updateProfile = async (data: Partial<InfluencerUser>) => {
     if (!user) throw new Error("Not authenticated");
     
-    // Mock API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (user.role === "influencer") {
-      const updatedUser: InfluencerUser = { ...(user as InfluencerUser), ...data };
-      MOCK_USERS[user.email] = updatedUser;
-      setUser(updatedUser);
-      localStorage.setItem("dotfluence-user", JSON.stringify(updatedUser));
-    } else {
-      throw new Error("Only influencers can update their profile");
+    try {
+      if (user.role === "influencer") {
+        const updateData = {
+          name: data.name,
+          instagram: data.instagram,
+          follower_count: data.followerCount,
+          phone: data.phone,
+          categories: data.categories,
+          city: data.city,
+          profile_completed: data.profileCompleted !== undefined ? data.profileCompleted : user.profileCompleted
+        };
+        
+        const { error } = await supabase
+          .from('influencers')
+          .update(updateData)
+          .eq('id', user.dbId);
+          
+        if (error) throw error;
+        
+        // Update local state with new data
+        setUser({
+          ...user,
+          ...data
+        });
+        
+        toast.success("Profile updated successfully");
+      } else {
+        throw new Error("Only influencers can update their profile");
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error("Failed to update profile");
+      throw error;
     }
   };
 

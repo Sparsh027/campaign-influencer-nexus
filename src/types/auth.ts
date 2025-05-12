@@ -2,21 +2,16 @@
 export type UserRole = "admin" | "influencer";
 
 export interface AdminUser {
-  id: string;
+  id: string; // This is the Supabase ID
+  dbId: string; // This is the database ID from the admins table
   email: string;
   name: string;
   role: "admin";
-  // Add empty properties to make type checking easier
-  instagram?: never;
-  followerCount?: never;
-  phone?: never;
-  categories?: never;
-  city?: never;
-  profileCompleted?: never;
 }
 
 export interface InfluencerUser {
-  id: string;
+  id: string; // This is the Supabase ID
+  dbId: string; // This is the database ID from the influencers table
   email: string;
   name: string;
   role: "influencer";

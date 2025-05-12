@@ -16,7 +16,7 @@ export default function InfluencerApplications() {
 
   // Get user's applications with campaign details
   const userApplications = applications
-    .filter(app => app.influencerId === user?.id)
+    .filter(app => app.influencerId === user?.dbId)
     .map(app => {
       const campaign = campaigns.find(c => c.id === app.campaignId);
       return { ...app, campaign };
@@ -24,11 +24,22 @@ export default function InfluencerApplications() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const handleContactAdmin = async (application: Application & { campaign?: Campaign }) => {
-    if (!application.campaign) return;
+    if (!application.campaign || !user) return;
     
     try {
+      // Get admin ID
+      const { data: adminData, error: adminError } = await supabase
+        .from('admins')
+        .select('id')
+        .single();
+        
+      if (adminError || !adminData) {
+        console.error('Error getting admin ID:', adminError);
+        return;
+      }
+      
       // Send initial message
-      await sendMessage('admin-1', `Hello, I'd like to discuss my application for the "${application.campaign.title}" campaign.`);
+      await sendMessage(adminData.id, `Hello, I'd like to discuss my application for the "${application.campaign.title}" campaign.`);
       
       // Navigate to inbox
       navigate('/influencer/inbox');

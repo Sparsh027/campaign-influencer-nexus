@@ -24,7 +24,9 @@ export interface Application {
 
 export interface Message {
   id: string;
+  senderType: 'admin' | 'influencer';
   senderId: string;
+  receiverType: 'admin' | 'influencer';
   receiverId: string;
   content: string;
   read: boolean;
@@ -37,7 +39,8 @@ export interface Notification {
   id: string;
   type: 'new_influencer' | 'new_application' | 'new_message';
   message: string;
-  userId: string;
+  targetType: 'admin' | 'influencer';
+  targetId: string;
   read: boolean;
   createdAt: string;
 }
