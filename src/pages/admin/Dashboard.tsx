@@ -10,7 +10,7 @@ export default function AdminDashboard() {
   
   const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
   const recentNotifications = [...notifications]
-    .filter(n => n.userId === 'admin-1')
+    .filter(n => n.targetType === 'admin')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
@@ -66,10 +66,10 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {notifications.filter(n => n.type === 'new_message' && !n.read && n.userId === 'admin-1').length}
+              {notifications.filter(n => n.type === 'new_message' && !n.read && n.targetType === 'admin').length}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              From {new Set(notifications.filter(n => n.type === 'new_message' && n.userId === 'admin-1').map(n => n.message.split(' from ')[1])).size} influencers
+              From {new Set(notifications.filter(n => n.type === 'new_message' && n.targetType === 'admin').map(n => n.message.split(' from ')[1])).size} influencers
             </p>
           </CardContent>
         </Card>

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Campaign, Application, Message, Notification } from "../types/data";
 import { User, InfluencerUser } from "../types/auth";
@@ -233,6 +232,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           message: n.message,
           targetType: n.target_type,
           targetId: n.target_id,
+          userId: n.target_id, // Add userId for backward compatibility
           read: n.read,
           createdAt: n.created_at
         }));

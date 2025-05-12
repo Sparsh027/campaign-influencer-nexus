@@ -14,10 +14,10 @@ export default function InfluencerDashboard() {
   
   const influencerUser = user as InfluencerUser | null;
   const eligibleCampaigns = getEligibleCampaigns();
-  const userApplications = applications.filter(app => app.influencerId === user?.id);
+  const userApplications = applications.filter(app => app.influencerId === user?.dbId);
   
   const recentNotifications = [...notifications]
-    .filter(n => n.userId === user?.id)
+    .filter(n => n.targetType === 'influencer' && n.targetId === user?.dbId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
@@ -70,7 +70,7 @@ export default function InfluencerDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {notifications.filter(n => n.type === 'new_message' && !n.read && n.userId === user?.id).length}
+              {notifications.filter(n => n.type === 'new_message' && !n.read && n.targetType === 'influencer' && n.targetId === user?.dbId).length}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Check your inbox for updates

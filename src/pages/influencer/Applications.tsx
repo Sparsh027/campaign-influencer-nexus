@@ -8,6 +8,7 @@ import { useData } from '@/contexts/DataContext';
 import { MessageSquare } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Application, Campaign } from '@/types/data';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function InfluencerApplications() {
   const { user } = useAuth();

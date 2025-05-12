@@ -7,12 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Ban, Search, Trash2, User } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
-import { User as UserType } from '@/types/auth';
+import { User as UserType, InfluencerUser } from '@/types/auth';
 
 export default function AdminInfluencers() {
   const { influencers, blockInfluencer, deleteInfluencer } = useData();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedInfluencer, setSelectedInfluencer] = useState<UserType | null>(null);
+  const [selectedInfluencer, setSelectedInfluencer] = useState<InfluencerUser | null>(null);
 
   const filteredInfluencers = influencers.filter(influencer => 
     influencer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
