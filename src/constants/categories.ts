@@ -1,34 +1,24 @@
 
-// Categories for influencer profiles and campaigns
 export const CATEGORIES = [
-  "fashion",
-  "beauty",
-  "fitness",
-  "health",
-  "travel",
-  "food",
-  "technology",
-  "gaming",
-  "lifestyle",
-  "family",
-  "finance",
-  "education",
-  "business",
-  "photography",
-  "art",
-  "music",
-  "sports",
-  "pets"
+  { id: "fashion", label: "Fashion" },
+  { id: "beauty", label: "Beauty" },
+  { id: "lifestyle", label: "Lifestyle" },
+  { id: "travel", label: "Travel" },
+  { id: "fitness", label: "Fitness" },
+  { id: "food", label: "Food & Beverage" },
+  { id: "technology", label: "Technology" },
+  { id: "gaming", label: "Gaming" },
+  { id: "music", label: "Music" },
+  { id: "education", label: "Education" }
 ];
 
-// Cities for influencer profiles and campaigns
 export const CITIES = [
   "New York",
   "Los Angeles",
   "Chicago",
   "Houston",
-  "Philadelphia",
   "Phoenix",
+  "Philadelphia",
   "San Antonio",
   "San Diego",
   "Dallas",
@@ -36,11 +26,11 @@ export const CITIES = [
   "Austin",
   "Jacksonville",
   "San Francisco",
-  "Indianapolis",
-  "Columbus",
-  "Fort Worth",
-  "Charlotte",
+  "Miami",
   "Seattle",
+  "Boston",
   "Denver",
-  "Boston"
+  "Las Vegas",
+  "Atlanta",
+  "Portland"
 ];

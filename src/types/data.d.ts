@@ -1,4 +1,3 @@
-
 import { InfluencerUser } from "./auth";
 
 export interface Campaign {
@@ -33,4 +32,17 @@ export interface DataContextType {
   getApprovedInfluencersForCampaign: (campaignId: string) => Application[];
   updateApplicationStatus: (applicationId: string, status: 'approved' | 'rejected') => Promise<void>;
   createMessage: (messageData: { receiverId: string, receiverType: 'admin' | 'influencer', content: string }) => Promise<void>;
+  influencers: InfluencerUser[];
+  blockInfluencer: (id: string) => Promise<void>;
+  deleteInfluencer: (id: string) => Promise<void>;
+  applications: Application[];
+  applyToCampaign: (campaignId: string) => Promise<void>;
+  messages: Message[];
+  conversations: { id: string; name: string; unread: number }[];
+  sendMessage: (receiverId: string, content: string) => Promise<void>;
+  notifications: Notification[];
+  markNotificationAsRead: (id: string) => void;
+  getEligibleCampaigns: () => Campaign[];
+  isInfluencerEligible: (campaignId: string, influencerId?: string) => boolean;
+  hasApplied: (campaignId: string) => boolean;
 }
