@@ -1,23 +1,16 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useData } from '@/contexts/DataContext';
-import { BarChart, Users, LayoutDashboard, MessageSquare, Bell, ExternalLink } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Link } from 'react-router-dom';
+import { BarChart, Users, LayoutDashboard, MessageSquare, Bell } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { campaigns, influencers, applications, notifications, updateApplicationStatus } = useData();
+  const { campaigns, influencers, applications, notifications } = useData();
   
   const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
   const recentNotifications = [...notifications]
     .filter(n => n.targetType === 'admin')
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
-
-  // Get recent applications sorted by date
-  const recentApplications = [...applications]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
@@ -123,94 +116,41 @@ export default function AdminDashboard() {
         </Card>
 
         <Card className="col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Recent Applications</CardTitle>
-              <CardDescription>Latest campaign applications</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/campaigns">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                View All
-              </Link>
-            </Button>
+          <CardHeader>
+            <CardTitle>Recent Applications</CardTitle>
+            <CardDescription>Latest campaign applications</CardDescription>
           </CardHeader>
-          
-          <CardContent className="space-y-4 p-4">
-            {recentApplications.length > 0 ? (
-              recentApplications
-                .filter(app => app.status === 'pending')
+          <CardContent className="space-y-4">
+            {applications.length > 0 ? (
+              applications
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .slice(0, 5)
                 .map((application) => {
                   const campaign = campaigns.find(c => c.id === application.campaignId);
                   const influencer = influencers.find(i => i.id === application.influencerId);
                   
                   return (
-                    <Card key={application.id} className="border border-border/50">
-                      <CardContent className="p-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium">{influencer?.name || 'Unknown Influencer'}</p>
-                              <Badge variant="outline" className="text-xs">
-                                {influencer?.followerCount?.toLocaleString() || '0'} followers
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              Applied to: {campaign?.title || 'Unknown Campaign'}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(application.createdAt).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </p>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              variant="outline" 
-                              size="sm"
-                              asChild
-                            >
-                              <Link to={`/admin/campaign/${application.campaignId}`}>
-                                Review
-                              </Link>
-                            </Button>
-                            <div className="flex gap-1">
-                              <Button
-                                variant="default"
-                                size="sm"
-                                className="bg-green-600 hover:bg-green-700"
-                                onClick={() => updateApplicationStatus(application.id, 'approved')}
-                              >
-                                Approve
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => updateApplicationStatus(application.id, 'rejected')}
-                              >
-                                Reject
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <div key={application.id} className="flex items-center justify-between border-b border-gray-100 pb-3">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">{influencer?.name || 'Unknown Influencer'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Applied to: {campaign?.title || 'Unknown Campaign'}
+                        </p>
+                      </div>
+                      <Button variant="outline" size="sm">Review</Button>
+                    </div>
                   );
                 })
             ) : (
-              <p className="text-sm text-muted-foreground">No pending applications</p>
+              <p className="text-sm text-muted-foreground">No recent applications</p>
+            )}
+            
+            {applications.length > 0 && (
+              <Button variant="outline" size="sm" className="w-full mt-2">
+                View All Applications
+              </Button>
             )}
           </CardContent>
-          
-          <CardFooter className="bg-gray-50 rounded-b-lg border-t p-4">
-            <Button variant="outline" size="sm" className="w-full" asChild>
-              <Link to="/admin/campaigns">
-                View All Applications
-              </Link>
-            </Button>
-          </CardFooter>
         </Card>
       </div>
     </div>

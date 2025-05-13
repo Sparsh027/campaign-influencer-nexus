@@ -4,21 +4,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Users, Calendar, MapPin, AlertCircle } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import EligibleInfluencers from '@/components/campaigns/EligibleInfluencers';
 import CampaignApplications from '@/components/campaigns/CampaignApplications';
 import ApprovedInfluencers from '@/components/campaigns/ApprovedInfluencers';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function CampaignDetail() {
   const { campaignId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { campaigns, applications, getEligibleInfluencers } = useData();
-  const isMobile = useIsMobile();
   
   const [campaign, setCampaign] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -44,12 +42,7 @@ export default function CampaignDetail() {
     setLoading(false);
   }, [campaignId, campaigns, navigate]);
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-48">
-      <p className="text-muted-foreground">Loading...</p>
-    </div>
-  );
-  
+  if (loading) return <div className="flex items-center justify-center h-48">Loading...</div>;
   if (!campaign) return null;
   
   // Get counts for tabs
@@ -60,72 +53,67 @@ export default function CampaignDetail() {
   
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/admin/campaigns')} className="w-fit">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/admin/campaigns')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+          Back to campaigns
         </Button>
-        <h1 className="text-xl sm:text-2xl font-bold truncate">{campaign.title}</h1>
+        <h1 className="text-2xl font-bold">{campaign.title}</h1>
       </div>
       
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-start flex-wrap gap-2">
-            <CardTitle>Campaign Details</CardTitle>
-            <Badge variant={campaign.status === 'active' ? 'default' : 'secondary'}>
-              {campaign.status}
-            </Badge>
-          </div>
-          <CardDescription className="line-clamp-3">{campaign.description}</CardDescription>
+          <CardTitle>Campaign Details</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <div className="flex items-center">
-              <Users className="h-4 w-4 mr-2 text-muted-foreground" />
-              <p className="text-sm font-medium">Min Followers: {campaign.minFollowers.toLocaleString()}</p>
-            </div>
-            
-            {campaign.city && (
-              <div className="flex items-center">
-                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                <p className="text-sm font-medium">Location: {campaign.city}</p>
-              </div>
-            )}
-            
-            <div className="flex items-center">
-              <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-              <p className="text-sm font-medium">Created: {new Date(campaign.createdAt).toLocaleDateString()}</p>
-            </div>
-          </div>
-          
+        <CardContent className="grid gap-4 md:grid-cols-2">
           <div>
-            <p className="text-sm font-medium mb-2">Categories:</p>
-            <div className="flex flex-wrap gap-1">
-              {campaign.categories && campaign.categories.length > 0 ? (
-                campaign.categories.map((category: string) => (
-                  <Badge key={category} variant="outline">{category}</Badge>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">Any category</p>
-              )}
+            <p className="text-sm font-medium text-muted-foreground">Description</p>
+            <p>{campaign.description}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Min Followers</p>
+              <p>{campaign.minFollowers.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">City</p>
+              <p>{campaign.city || 'Any location'}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Categories</p>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {campaign.categories && campaign.categories.length > 0 ? (
+                  campaign.categories.map((category: string) => (
+                    <Badge key={category} variant="outline">{category}</Badge>
+                  ))
+                ) : (
+                  <p>Any category</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Status</p>
+              <Badge className="mt-1" variant={campaign.status === 'active' ? 'success' : 'secondary'}>
+                {campaign.status}
+              </Badge>
             </div>
           </div>
         </CardContent>
       </Card>
       
       <Tabs defaultValue="eligible" className="w-full">
-        <TabsList className={`${isMobile ? 'w-full grid grid-cols-3' : 'w-auto'}`}>
-          <TabsTrigger value="eligible" className="flex items-center gap-1.5">
-            Eligible
-            <Badge variant="outline" className="ml-1">{eligibleInfluencers.length}</Badge>
+        <TabsList className="w-full md:w-auto">
+          <TabsTrigger value="eligible">
+            Eligible Influencers 
+            <Badge variant="outline" className="ml-2">{eligibleInfluencers.length}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="applications" className="flex items-center gap-1.5">
-            Applications
-            <Badge variant="outline" className="ml-1">{pendingApplications.length}</Badge>
+          <TabsTrigger value="applications">
+            Applications 
+            <Badge variant="outline" className="ml-2">{pendingApplications.length}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="approved" className="flex items-center gap-1.5">
-            Approved
-            <Badge variant="outline" className="ml-1">{approvedApplications.length}</Badge>
+          <TabsTrigger value="approved">
+            Approved 
+            <Badge variant="outline" className="ml-2">{approvedApplications.length}</Badge>
           </TabsTrigger>
         </TabsList>
         
