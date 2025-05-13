@@ -518,17 +518,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .select('id')
           .single();
           
-        if (!adminError && adminData) {
-          await supabase
-            .from('notifications')
-            .insert({
-              type: 'new_application',
-              message: `${user.name} applied to ${campaign.title}`,
-              target_type: 'admin',
-              target_id: adminData.id,
-              read: false
-            });
+        if (!adminData) {
+          throw new Error("Admin not found");
         }
+        
+        await supabase
+          .from('notifications')
+          .insert({
+            type: 'new_application',
+            message: `${user.name} applied to ${campaign.title}`,
+            target_type: 'admin',
+            target_id: adminData.id,
+            read: false
+          });
         
         toast.success("Application submitted successfully");
       }
@@ -682,7 +684,85 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       app => app.campaignId === campaignId && app.influencerId === user.dbId
     );
   };
-  
+
+  // New functions for CampaignDetail
+  const getApplicationsForCampaign = (campaignId: string): Application[] => {
+    // For now, we'll just return mock data
+    return [
+      {
+        id: "app1",
+        influencer: {
+          id: "inf1",
+          name: "Alex Johnson",
+          instagram: "alex.style",
+          followerCount: 5000,
+          city: "New York",
+          categories: ["fashion", "lifestyle"],
+          email: "alex@example.com",
+        },
+        campaign: campaigns.find(c => c.id === campaignId),
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "app2",
+        influencer: {
+          id: "inf2",
+          name: "Jamie Smith",
+          instagram: "jamie.travels",
+          followerCount: 8000,
+          city: "Los Angeles",
+          categories: ["travel", "food"],
+          email: "jamie@example.com",
+        },
+        campaign: campaigns.find(c => c.id === campaignId),
+        status: "pending",
+        createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+      }
+    ].filter(app => app.campaign !== undefined);
+  };
+
+  const getApprovedInfluencersForCampaign = (campaignId: string): Application[] => {
+    // Mock data for approved applications
+    return [
+      {
+        id: "app3",
+        influencer: {
+          id: "inf3",
+          name: "Morgan Taylor",
+          instagram: "morgan.fit",
+          followerCount: 12000,
+          city: "Miami",
+          categories: ["fitness", "lifestyle"],
+          email: "morgan@example.com",
+        },
+        campaign: campaigns.find(c => c.id === campaignId),
+        status: "approved",
+        createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+      }
+    ].filter(app => app.campaign !== undefined);
+  };
+
+  const updateApplicationStatus = async (applicationId: string, status: 'approved' | 'rejected'): Promise<void> => {
+    // For the demo, we just simulate the API call with a timeout
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log(`Application ${applicationId} status updated to ${status}`);
+        resolve();
+      }, 500);
+    });
+  };
+
+  const createMessage = async (messageData: { receiverId: string, receiverType: 'admin' | 'influencer', content: string }): Promise<void> => {
+    // For the demo, we just simulate the API call with a timeout
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log('Message sent:', messageData);
+        resolve();
+      }, 500);
+    });
+  };
+
   return (
     <DataContext.Provider value={{
       // Data
@@ -716,6 +796,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       getEligibleInfluencers,
       isInfluencerEligible,
       hasApplied,
+      
+      // CampaignDetail actions
+      getApplicationsForCampaign,
+      getApprovedInfluencersForCampaign,
+      updateApplicationStatus,
+      createMessage,
     }}>
       {children}
     </DataContext.Provider>
