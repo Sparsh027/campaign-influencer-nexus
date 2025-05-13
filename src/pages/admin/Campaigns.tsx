@@ -776,7 +776,7 @@ function CampaignCard({ campaign, onEdit, onDelete, onShowInfluencers }: Campaig
   );
 }
 
-const ViewCampaignAction: React.FC<{ id: string }> = ({ id }) => {
+const ViewCampaignAction: React.FC<{ id: string; onDelete: (id: string) => void }> = ({ id, onDelete }) => {
   const navigate = useNavigate();
   
   return (
@@ -785,9 +785,11 @@ const ViewCampaignAction: React.FC<{ id: string }> = ({ id }) => {
         View Details
       </DropdownMenuItem>
       <DropdownMenuSeparator />
-      <DropdownMenuItem onClick={() => handleDelete(id)}>
+      <DropdownMenuItem onClick={() => onDelete(id)}>
         Delete
       </DropdownMenuItem>
     </DropdownMenuContent>
   );
 };
+
+export default AdminCampaigns;

@@ -1,3 +1,4 @@
+
 import {
   BrowserRouter,
   Routes,
@@ -7,23 +8,23 @@ import {
 import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import { Index } from "./pages/Index";
-import { SignIn } from "./pages/SignIn";
-import { SignUp } from "./pages/SignUp";
-import { CompleteProfile } from "./pages/CompleteProfile";
-import { NotFound } from "./pages/NotFound";
+import Index from "./pages/Index";
+import SignIn from "./pages/auth/SignIn";
+import SignUp from "./pages/auth/SignUp";
+import CompleteProfile from "./pages/auth/CompleteProfile";
+import NotFound from "./pages/NotFound";
 
-import { AdminDashboard } from "./pages/admin/Dashboard";
-import { AdminCampaigns } from "./pages/admin/Campaigns";
-import { AdminInfluencers } from "./pages/admin/Influencers";
-import { AdminInbox } from "./pages/admin/Inbox";
-import { AdminSettings } from "./pages/admin/Settings";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminCampaigns from "./pages/admin/Campaigns";
+import AdminInfluencers from "./pages/admin/Influencers";
+import AdminInbox from "./pages/admin/Inbox";
+import AdminSettings from "./pages/admin/Settings";
 
-import { InfluencerDashboard } from "./pages/influencer/Dashboard";
-import { InfluencerCampaigns } from "./pages/influencer/Campaigns";
-import { InfluencerApplications } from "./pages/influencer/Applications";
-import { InfluencerInbox } from "./pages/influencer/Inbox";
-import { InfluencerSettings } from "./pages/influencer/Settings";
+import InfluencerDashboard from "./pages/influencer/Dashboard";
+import InfluencerCampaigns from "./pages/influencer/Campaigns";
+import InfluencerApplications from "./pages/influencer/Applications";
+import InfluencerInbox from "./pages/influencer/Inbox";
+import InfluencerSettings from "./pages/influencer/Settings";
 
 import { AuthProvider } from "./contexts/AuthContext";
 import { DataProvider } from "./contexts/DataContext";

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { AdminLayout } from "@/components/layouts/AdminLayout";
+import AdminLayout from "@/components/layouts/AdminLayout";
 import { useData } from "@/contexts/DataContext";
 import { Campaign, Application } from "@/types/data";
 import { InfluencerUser } from "@/types/auth";
