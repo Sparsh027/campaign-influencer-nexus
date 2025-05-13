@@ -28,7 +28,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AdminLayout } from '@/components/layouts/AdminLayout';
-import { CITIES, CATEGORIES } from '@/constants';
+import { CITIES, CATEGORIES } from '../../constants/categories';
 
 // Form schema for campaign creation
 const campaignSchema = z.object({

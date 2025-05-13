@@ -1,3 +1,4 @@
+
 import { InfluencerUser } from "./auth";
 
 export interface Campaign {
@@ -13,10 +14,12 @@ export interface Campaign {
 
 export interface Application {
   id: string;
-  influencer: InfluencerUser;
-  campaign: Campaign | undefined;
+  campaignId: string;
+  influencerId: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
+  campaign?: Campaign;
+  influencer?: InfluencerUser;
 }
 
 // DataContextType update

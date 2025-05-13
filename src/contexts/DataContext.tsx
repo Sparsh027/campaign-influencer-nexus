@@ -687,60 +687,75 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // New functions for CampaignDetail
   const getApplicationsForCampaign = (campaignId: string): Application[] => {
-    // For now, we'll just return mock data
+    // For now, we'll return mock data that matches the Application type
     return [
       {
         id: "app1",
+        campaignId: campaignId,
+        influencerId: "inf1",
+        status: "pending",
+        createdAt: new Date().toISOString(),
         influencer: {
           id: "inf1",
+          dbId: "inf1",
           name: "Alex Johnson",
+          email: "alex@example.com",
+          role: "influencer",
           instagram: "alex.style",
           followerCount: 5000,
           city: "New York",
           categories: ["fashion", "lifestyle"],
-          email: "alex@example.com",
+          profileCompleted: true
         },
-        campaign: campaigns.find(c => c.id === campaignId),
-        status: "pending",
-        createdAt: new Date().toISOString(),
+        campaign: campaigns.find(c => c.id === campaignId)
       },
       {
         id: "app2",
+        campaignId: campaignId,
+        influencerId: "inf2",
+        status: "pending",
+        createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
         influencer: {
           id: "inf2",
+          dbId: "inf2",
           name: "Jamie Smith",
+          email: "jamie@example.com",
+          role: "influencer",
           instagram: "jamie.travels",
           followerCount: 8000,
           city: "Los Angeles",
           categories: ["travel", "food"],
-          email: "jamie@example.com",
+          profileCompleted: true
         },
-        campaign: campaigns.find(c => c.id === campaignId),
-        status: "pending",
-        createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        campaign: campaigns.find(c => c.id === campaignId)
       }
-    ].filter(app => app.campaign !== undefined);
+    ];
   };
 
   const getApprovedInfluencersForCampaign = (campaignId: string): Application[] => {
-    // Mock data for approved applications
+    // Mock data for approved applications that match the Application type
     return [
       {
         id: "app3",
+        campaignId: campaignId,
+        influencerId: "inf3",
+        status: "approved",
+        createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
         influencer: {
           id: "inf3",
+          dbId: "inf3",
           name: "Morgan Taylor",
+          email: "morgan@example.com",
+          role: "influencer",
           instagram: "morgan.fit",
           followerCount: 12000,
           city: "Miami",
           categories: ["fitness", "lifestyle"],
-          email: "morgan@example.com",
+          profileCompleted: true
         },
-        campaign: campaigns.find(c => c.id === campaignId),
-        status: "approved",
-        createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+        campaign: campaigns.find(c => c.id === campaignId)
       }
-    ].filter(app => app.campaign !== undefined);
+    ];
   };
 
   const updateApplicationStatus = async (applicationId: string, status: 'approved' | 'rejected'): Promise<void> => {
