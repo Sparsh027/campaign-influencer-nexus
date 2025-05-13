@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -27,8 +26,27 @@ import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AdminLayout } from '@/components/layouts/AdminLayout';
-import { CITIES, CATEGORIES } from '../../constants/categories';
+
+const CATEGORIES = [
+  { id: 'fashion', label: 'Fashion' },
+  { id: 'beauty', label: 'Beauty' },
+  { id: 'travel', label: 'Travel' },
+  { id: 'fitness', label: 'Fitness' },
+  { id: 'food', label: 'Food' },
+  { id: 'lifestyle', label: 'Lifestyle' },
+  { id: 'technology', label: 'Technology' },
+  { id: 'gaming', label: 'Gaming' },
+  { id: 'health', label: 'Health' },
+  { id: 'parenting', label: 'Parenting' },
+  { id: 'business', label: 'Business' },
+  { id: 'education', label: 'Education' },
+  { id: 'entertainment', label: 'Entertainment' },
+];
+
+const CITIES = [
+  'New York', 'Los Angeles', 'Chicago', 'Miami', 'San Francisco', 'Austin',
+  'London', 'Paris', 'Tokyo', 'Sydney', 'Berlin', 'Toronto', 'Dubai', 'Singapore'
+];
 
 // Form schema for campaign creation
 const campaignSchema = z.object({
@@ -42,9 +60,8 @@ const campaignSchema = z.object({
 
 type CampaignFormValues = z.infer<typeof campaignSchema>;
 
-export function AdminCampaigns() {
+export default function AdminCampaigns() {
   const { campaigns, createCampaign, updateCampaign, deleteCampaign, getEligibleInfluencers } = useData();
-  const navigate = useNavigate();
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -153,528 +170,522 @@ export function AdminCampaigns() {
     : [];
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="text-3xl font-bold tracking-tight">Campaigns</h1>
-          
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search campaigns..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> New
-            </Button>
-          </div>
-        </div>
-
-        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-4 mb-4">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-            <TabsTrigger value="draft">Draft</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="all" className="space-y-4">
-            {filteredCampaigns.length > 0 ? (
-              filteredCampaigns.map(campaign => (
-                <CampaignCard
-                  key={campaign.id}
-                  campaign={campaign}
-                  onDelete={handleDelete}
-                  onEdit={(campaign) => {
-                    setSelectedCampaign(campaign);
-                    setIsEditDialogOpen(true);
-                  }}
-                  onShowInfluencers={(campaign) => setSelectedCampaignForInfluencers(campaign)}
-                  onViewDetail={(campaign) => navigate(`/admin/campaigns/${campaign.id}`)}
-                />
-              ))
-            ) : (
-              <Card className="flex justify-center py-8">
-                <p className="text-muted-foreground">No campaigns found</p>
-              </Card>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="active" className="space-y-4">
-            {filteredCampaigns.length > 0 ? (
-              filteredCampaigns.map(campaign => (
-                <CampaignCard
-                  key={campaign.id}
-                  campaign={campaign}
-                  onDelete={handleDelete}
-                  onEdit={(campaign) => {
-                    setSelectedCampaign(campaign);
-                    setIsEditDialogOpen(true);
-                  }}
-                  onShowInfluencers={(campaign) => setSelectedCampaignForInfluencers(campaign)}
-                  onViewDetail={(campaign) => navigate(`/admin/campaigns/${campaign.id}`)}
-                />
-              ))
-            ) : (
-              <Card className="flex justify-center py-8">
-                <p className="text-muted-foreground">No active campaigns found</p>
-              </Card>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="completed" className="space-y-4">
-            {filteredCampaigns.length > 0 ? (
-              filteredCampaigns.map(campaign => (
-                <CampaignCard
-                  key={campaign.id}
-                  campaign={campaign}
-                  onDelete={handleDelete}
-                  onEdit={(campaign) => {
-                    setSelectedCampaign(campaign);
-                    setIsEditDialogOpen(true);
-                  }}
-                  onShowInfluencers={(campaign) => setSelectedCampaignForInfluencers(campaign)}
-                  onViewDetail={(campaign) => navigate(`/admin/campaigns/${campaign.id}`)}
-                />
-              ))
-            ) : (
-              <Card className="flex justify-center py-8">
-                <p className="text-muted-foreground">No completed campaigns found</p>
-              </Card>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="draft" className="space-y-4">
-            {filteredCampaigns.length > 0 ? (
-              filteredCampaigns.map(campaign => (
-                <CampaignCard
-                  key={campaign.id}
-                  campaign={campaign}
-                  onDelete={handleDelete}
-                  onEdit={(campaign) => {
-                    setSelectedCampaign(campaign);
-                    setIsEditDialogOpen(true);
-                  }}
-                  onShowInfluencers={(campaign) => setSelectedCampaignForInfluencers(campaign)}
-                  onViewDetail={(campaign) => navigate(`/admin/campaigns/${campaign.id}`)}
-                />
-              ))
-            ) : (
-              <Card className="flex justify-center py-8">
-                <p className="text-muted-foreground">No draft campaigns found</p>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
-
-        {/* Create Campaign Dialog */}
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create Campaign</DialogTitle>
-              <DialogDescription>
-                Create a new campaign for influencers to apply to.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <Form {...createForm}>
-              <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-6">
-                <FormField
-                  control={createForm.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Campaign Title</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Summer Fashion Collection" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={createForm.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Describe the campaign objectives, requirements, and what influencers will be expected to do."
-                          className="min-h-[100px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={createForm.control}
-                    name="minFollowers"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Minimum Followers</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Minimum number of followers required
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={createForm.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City</FormLabel>
-                        <FormControl>
-                          <Input 
-                            list="cities"
-                            placeholder="Choose a city"
-                            {...field}
-                          />
-                        </FormControl>
-                        <datalist id="cities">
-                          {CITIES.map(city => (
-                            <option key={city} value={city} />
-                          ))}
-                        </datalist>
-                        <FormDescription>
-                          Location for this campaign
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={createForm.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Active Campaign</FormLabel>
-                        <FormDescription>
-                          Make this campaign immediately available to influencers
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value === 'active'}
-                          onCheckedChange={(checked) =>
-                            field.onChange(checked ? 'active' : 'draft')
-                          }
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={createForm.control}
-                  name="categories"
-                  render={() => (
-                    <FormItem>
-                      <div className="mb-4">
-                        <FormLabel className="text-base">Categories</FormLabel>
-                        <FormDescription>
-                          Select relevant categories for this campaign
-                        </FormDescription>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {CATEGORIES.map((category) => (
-                          <FormField
-                            key={category.id}
-                            control={createForm.control}
-                            name="categories"
-                            render={({ field }) => {
-                              return (
-                                <FormItem
-                                  key={category.id}
-                                  className="flex flex-row items-start space-x-3 space-y-0"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(category.id)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? field.onChange([...field.value, category.id])
-                                          : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== category.id
-                                              )
-                                            )
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="font-normal">
-                                    {category.label}
-                                  </FormLabel>
-                                </FormItem>
-                              )
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <DialogFooter>
-                  <Button 
-                    variant="outline" 
-                    type="button" 
-                    onClick={() => setIsCreateDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit">Create Campaign</Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Campaign Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Campaign</DialogTitle>
-              <DialogDescription>
-                Update your campaign details.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <Form {...editForm}>
-              <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-6">
-                {/* Same form fields as create dialog */}
-                <FormField
-                  control={editForm.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Campaign Title</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Summer Fashion Collection" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={editForm.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Describe the campaign objectives, requirements, and what influencers will be expected to do."
-                          className="min-h-[100px]"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="minFollowers"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Minimum Followers</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Minimum number of followers required
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={editForm.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City</FormLabel>
-                        <FormControl>
-                          <Input 
-                            list="edit-cities"
-                            placeholder="Choose a city"
-                            {...field}
-                          />
-                        </FormControl>
-                        <datalist id="edit-cities">
-                          {CITIES.map(city => (
-                            <option key={city} value={city} />
-                          ))}
-                        </datalist>
-                        <FormDescription>
-                          Location for this campaign
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={editForm.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Active Campaign</FormLabel>
-                        <FormDescription>
-                          Make this campaign immediately available to influencers
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value === 'active'}
-                          onCheckedChange={(checked) =>
-                            field.onChange(checked ? 'active' : 'draft')
-                          }
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={editForm.control}
-                  name="categories"
-                  render={() => (
-                    <FormItem>
-                      <div className="mb-4">
-                        <FormLabel className="text-base">Categories</FormLabel>
-                        <FormDescription>
-                          Select relevant categories for this campaign
-                        </FormDescription>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {CATEGORIES.map((category) => (
-                          <FormField
-                            key={category.id}
-                            control={editForm.control}
-                            name="categories"
-                            render={({ field }) => {
-                              return (
-                                <FormItem
-                                  key={category.id}
-                                  className="flex flex-row items-start space-x-3 space-y-0"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(category.id)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? field.onChange([...field.value, category.id])
-                                          : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== category.id
-                                              )
-                                            )
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="font-normal">
-                                    {category.label}
-                                  </FormLabel>
-                                </FormItem>
-                              )
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <DialogFooter>
-                  <Button 
-                    variant="outline" 
-                    type="button" 
-                    onClick={() => setIsEditDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit">Save Changes</Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-3xl font-bold tracking-tight">Campaigns</h1>
         
-        {/* Eligible Influencers Dialog */}
-        <Dialog 
-          open={!!selectedCampaignForInfluencers} 
-          onOpenChange={(open) => !open && setSelectedCampaignForInfluencers(null)}
-        >
-          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Eligible Influencers</DialogTitle>
-              <DialogDescription>
-                Influencers who meet the criteria for {selectedCampaignForInfluencers?.title}
-              </DialogDescription>
-            </DialogHeader>
-            
-            {eligibleInfluencers.length > 0 ? (
-              <div className="space-y-4">
-                {eligibleInfluencers.map(influencer => (
-                  <Card key={influencer.id} className="overflow-hidden">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{influencer.name}</p>
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <span>{influencer.instagram} • {influencer.followerCount?.toLocaleString()} followers</span>
-                          </div>
-                        </div>
-                        <Button size="sm" variant="outline">
-                          <UserCheck className="mr-2 h-4 w-4" /> Invite
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8">
-                <Users className="h-16 w-16 text-muted-foreground mb-4" />
-                <h3 className="font-medium text-lg">No eligible influencers found</h3>
-                <p className="text-muted-foreground text-center mt-2">
-                  Try adjusting your campaign requirements to reach more influencers.
-                </p>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search campaigns..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> New
+          </Button>
+        </div>
       </div>
-    </AdminLayout>
+
+      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-4 mb-4">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="active">Active</TabsTrigger>
+          <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsTrigger value="draft">Draft</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="all" className="space-y-4">
+          {filteredCampaigns.length > 0 ? (
+            filteredCampaigns.map(campaign => (
+              <CampaignCard
+                key={campaign.id}
+                campaign={campaign}
+                onDelete={handleDelete}
+                onEdit={(campaign) => {
+                  setSelectedCampaign(campaign);
+                  setIsEditDialogOpen(true);
+                }}
+                onShowInfluencers={(campaign) => setSelectedCampaignForInfluencers(campaign)}
+              />
+            ))
+          ) : (
+            <Card className="flex justify-center py-8">
+              <p className="text-muted-foreground">No campaigns found</p>
+            </Card>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="active" className="space-y-4">
+          {filteredCampaigns.length > 0 ? (
+            filteredCampaigns.map(campaign => (
+              <CampaignCard
+                key={campaign.id}
+                campaign={campaign}
+                onDelete={handleDelete}
+                onEdit={(campaign) => {
+                  setSelectedCampaign(campaign);
+                  setIsEditDialogOpen(true);
+                }}
+                onShowInfluencers={(campaign) => setSelectedCampaignForInfluencers(campaign)}
+              />
+            ))
+          ) : (
+            <Card className="flex justify-center py-8">
+              <p className="text-muted-foreground">No active campaigns found</p>
+            </Card>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="completed" className="space-y-4">
+          {filteredCampaigns.length > 0 ? (
+            filteredCampaigns.map(campaign => (
+              <CampaignCard
+                key={campaign.id}
+                campaign={campaign}
+                onDelete={handleDelete}
+                onEdit={(campaign) => {
+                  setSelectedCampaign(campaign);
+                  setIsEditDialogOpen(true);
+                }}
+                onShowInfluencers={(campaign) => setSelectedCampaignForInfluencers(campaign)}
+              />
+            ))
+          ) : (
+            <Card className="flex justify-center py-8">
+              <p className="text-muted-foreground">No completed campaigns found</p>
+            </Card>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="draft" className="space-y-4">
+          {filteredCampaigns.length > 0 ? (
+            filteredCampaigns.map(campaign => (
+              <CampaignCard
+                key={campaign.id}
+                campaign={campaign}
+                onDelete={handleDelete}
+                onEdit={(campaign) => {
+                  setSelectedCampaign(campaign);
+                  setIsEditDialogOpen(true);
+                }}
+                onShowInfluencers={(campaign) => setSelectedCampaignForInfluencers(campaign)}
+              />
+            ))
+          ) : (
+            <Card className="flex justify-center py-8">
+              <p className="text-muted-foreground">No draft campaigns found</p>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Create Campaign Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Campaign</DialogTitle>
+            <DialogDescription>
+              Create a new campaign for influencers to apply to.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...createForm}>
+            <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-6">
+              <FormField
+                control={createForm.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Campaign Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Summer Fashion Collection" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={createForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Describe the campaign objectives, requirements, and what influencers will be expected to do."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={createForm.control}
+                  name="minFollowers"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Minimum Followers</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Minimum number of followers required
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={createForm.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input 
+                          list="cities"
+                          placeholder="Choose a city"
+                          {...field}
+                        />
+                      </FormControl>
+                      <datalist id="cities">
+                        {CITIES.map(city => (
+                          <option key={city} value={city} />
+                        ))}
+                      </datalist>
+                      <FormDescription>
+                        Location for this campaign
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={createForm.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Active Campaign</FormLabel>
+                      <FormDescription>
+                        Make this campaign immediately available to influencers
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value === 'active'}
+                        onCheckedChange={(checked) =>
+                          field.onChange(checked ? 'active' : 'draft')
+                        }
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={createForm.control}
+                name="categories"
+                render={() => (
+                  <FormItem>
+                    <div className="mb-4">
+                      <FormLabel className="text-base">Categories</FormLabel>
+                      <FormDescription>
+                        Select relevant categories for this campaign
+                      </FormDescription>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {CATEGORIES.map((category) => (
+                        <FormField
+                          key={category.id}
+                          control={createForm.control}
+                          name="categories"
+                          render={({ field }) => {
+                            return (
+                              <FormItem
+                                key={category.id}
+                                className="flex flex-row items-start space-x-3 space-y-0"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(category.id)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...field.value, category.id])
+                                        : field.onChange(
+                                            field.value?.filter(
+                                              (value) => value !== category.id
+                                            )
+                                          )
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  {category.label}
+                                </FormLabel>
+                              </FormItem>
+                            )
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  type="button" 
+                  onClick={() => setIsCreateDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Create Campaign</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Campaign Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Campaign</DialogTitle>
+            <DialogDescription>
+              Update your campaign details.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-6">
+              {/* Same form fields as create dialog */}
+              <FormField
+                control={editForm.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Campaign Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Summer Fashion Collection" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Describe the campaign objectives, requirements, and what influencers will be expected to do."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={editForm.control}
+                  name="minFollowers"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Minimum Followers</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Minimum number of followers required
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={editForm.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input 
+                          list="edit-cities"
+                          placeholder="Choose a city"
+                          {...field}
+                        />
+                      </FormControl>
+                      <datalist id="edit-cities">
+                        {CITIES.map(city => (
+                          <option key={city} value={city} />
+                        ))}
+                      </datalist>
+                      <FormDescription>
+                        Location for this campaign
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={editForm.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Active Campaign</FormLabel>
+                      <FormDescription>
+                        Make this campaign immediately available to influencers
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value === 'active'}
+                        onCheckedChange={(checked) =>
+                          field.onChange(checked ? 'active' : 'draft')
+                        }
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
+                name="categories"
+                render={() => (
+                  <FormItem>
+                    <div className="mb-4">
+                      <FormLabel className="text-base">Categories</FormLabel>
+                      <FormDescription>
+                        Select relevant categories for this campaign
+                      </FormDescription>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {CATEGORIES.map((category) => (
+                        <FormField
+                          key={category.id}
+                          control={editForm.control}
+                          name="categories"
+                          render={({ field }) => {
+                            return (
+                              <FormItem
+                                key={category.id}
+                                className="flex flex-row items-start space-x-3 space-y-0"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(category.id)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...field.value, category.id])
+                                        : field.onChange(
+                                            field.value?.filter(
+                                              (value) => value !== category.id
+                                            )
+                                          )
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  {category.label}
+                                </FormLabel>
+                              </FormItem>
+                            )
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  type="button" 
+                  onClick={() => setIsEditDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Eligible Influencers Dialog */}
+      <Dialog 
+        open={!!selectedCampaignForInfluencers} 
+        onOpenChange={(open) => !open && setSelectedCampaignForInfluencers(null)}
+      >
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Eligible Influencers</DialogTitle>
+            <DialogDescription>
+              Influencers who meet the criteria for {selectedCampaignForInfluencers?.title}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {eligibleInfluencers.length > 0 ? (
+            <div className="space-y-4">
+              {eligibleInfluencers.map(influencer => (
+                <Card key={influencer.id} className="overflow-hidden">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{influencer.name}</p>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <span>{influencer.instagram} • {influencer.followerCount?.toLocaleString()} followers</span>
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline">
+                        <UserCheck className="mr-2 h-4 w-4" /> Invite
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8">
+              <Users className="h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="font-medium text-lg">No eligible influencers found</h3>
+              <p className="text-muted-foreground text-center mt-2">
+                Try adjusting your campaign requirements to reach more influencers.
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
 
@@ -683,10 +694,9 @@ interface CampaignCardProps {
   onEdit: (campaign: Campaign) => void;
   onDelete: (id: string) => void;
   onShowInfluencers: (campaign: Campaign) => void;
-  onViewDetail: (campaign: Campaign) => void;
 }
 
-function CampaignCard({ campaign, onEdit, onDelete, onShowInfluencers, onViewDetail }: CampaignCardProps) {
+function CampaignCard({ campaign, onEdit, onDelete, onShowInfluencers }: CampaignCardProps) {
   const statusColor = {
     active: 'bg-green-500',
     completed: 'bg-blue-500',
@@ -700,8 +710,8 @@ function CampaignCard({ campaign, onEdit, onDelete, onShowInfluencers, onViewDet
   });
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="pb-2 cursor-pointer" onClick={() => onViewDetail(campaign)}>
+    <Card>
+      <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-xl mb-1">{campaign.title}</CardTitle>
@@ -716,37 +726,22 @@ function CampaignCard({ campaign, onEdit, onDelete, onShowInfluencers, onViewDet
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="icon">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={(e) => {
-                e.stopPropagation();
-                onEdit(campaign);
-              }}>
+              <DropdownMenuItem onClick={() => onEdit(campaign)}>
                 <FileEdit className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => {
-                e.stopPropagation();
-                onViewDetail(campaign);
-              }}>
-                <Users className="mr-2 h-4 w-4" /> View Details
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => {
-                e.stopPropagation();
-                onShowInfluencers(campaign);
-              }}>
-                <UserCheck className="mr-2 h-4 w-4" /> View Eligible Influencers
+              <DropdownMenuItem onClick={() => onShowInfluencers(campaign)}>
+                <Users className="mr-2 h-4 w-4" /> View Eligible Influencers
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(campaign.id);
-                }}
+                onClick={() => onDelete(campaign.id)}
                 className="text-red-600 focus:text-red-600"
               >
                 <Trash2 className="mr-2 h-4 w-4" /> Delete
@@ -755,7 +750,7 @@ function CampaignCard({ campaign, onEdit, onDelete, onShowInfluencers, onViewDet
           </DropdownMenu>
         </div>
       </CardHeader>
-      <CardContent className="pb-2 cursor-pointer" onClick={() => onViewDetail(campaign)}>
+      <CardContent className="pb-2">
         <p className="text-sm text-gray-600 line-clamp-2">{campaign.description}</p>
       </CardContent>
       <CardFooter className="flex flex-col items-start pt-2">

@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LayoutDashboard, Users, BarChart, MessageSquare, Settings, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function AdminLayout({ children }: { children?: React.ReactNode }) {
+export default function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -111,7 +111,7 @@ export function AdminLayout({ children }: { children?: React.ReactNode }) {
         "md:ml-64" // Always push content on desktop
       )}>
         <div className="container max-w-6xl py-8 px-4 md:px-6">
-          {children || <Outlet />}
+          <Outlet />
         </div>
       </main>
     </div>
