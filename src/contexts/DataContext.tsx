@@ -20,6 +20,7 @@ interface DataContextType {
   // Applications
   applications: Application[];
   applyToCampaign: (campaignId: string) => Promise<void>;
+  updateApplicationStatus: (applicationId: string, status: 'approved' | 'rejected') => Promise<void>;
   
   // Messages
   messages: Message[];
@@ -518,23 +519,68 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .select('id')
           .single();
           
-        if (!adminError && adminData) {
-          await supabase
-            .from('notifications')
-            .insert({
-              type: 'new_application',
-              message: `${user.name} applied to ${campaign.title}`,
-              target_type: 'admin',
-              target_id: adminData.id,
-              read: false
-            });
+        if (!adminData) {
+          throw new Error("Admin not found");
         }
+        
+        await supabase
+          .from('notifications')
+          .insert({
+            type: 'new_application',
+            message: `${user.name} applied to ${campaign.title}`,
+            target_type: 'admin',
+            target_id: adminData.id,
+            read: false
+          });
         
         toast.success("Application submitted successfully");
       }
     } catch (error: any) {
       console.error('Error applying to campaign:', error);
       toast.error(error?.message || "Failed to apply to campaign");
+      throw error;
+    }
+  };
+  
+  // Update application status
+  const updateApplicationStatus = async (applicationId: string, status: 'approved' | 'rejected') => {
+    if (!user || user.role !== "admin") {
+      throw new Error("Only admins can update application status");
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({ status })
+        .eq('id', applicationId);
+        
+      if (error) throw error;
+      
+      // Update local state
+      setApplications(prev => prev.map(app => 
+        app.id === applicationId ? { ...app, status } : app
+      ));
+      
+      // Create notification for the influencer
+      const application = applications.find(app => app.id === applicationId);
+      if (application) {
+        const campaign = campaigns.find(c => c.id === application.campaignId);
+        
+        await supabase
+          .from('notifications')
+          .insert({
+            type: 'new_application',
+            message: `Your application for "${campaign?.title}" has been ${status}`,
+            target_type: 'influencer',
+            target_id: application.influencerId,
+            read: false
+          });
+      }
+      
+      toast.success(`Application ${status} successfully`);
+    } catch (error) {
+      console.error('Error updating application status:', error);
+      toast.error("Failed to update application status");
       throw error;
     }
   };
@@ -704,6 +750,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Application actions
       applyToCampaign,
+      updateApplicationStatus,
       
       // Message actions
       sendMessage,
