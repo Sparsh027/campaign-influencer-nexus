@@ -20,6 +20,7 @@ interface DataContextType {
   // Applications
   applications: Application[];
   applyToCampaign: (campaignId: string) => Promise<void>;
+  updateApplication: (id: string, status: 'approved' | 'rejected' | 'pending') => Promise<void>;
   
   // Messages
   messages: Message[];
@@ -539,6 +540,57 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   
+  // Update application status
+  const updateApplication = async (id: string, status: 'approved' | 'rejected' | 'pending') => {
+    if (!user || user.role !== "admin") {
+      throw new Error("Only admins can update application status");
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({ status })
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      // Update local state
+      setApplications(prev => prev.map(app => 
+        app.id === id ? { ...app, status } : app
+      ));
+      
+      // Find the application to get the influencer ID
+      const application = applications.find(app => app.id === id);
+      if (application) {
+        // Find the influencer
+        const influencer = influencers.find(i => i.dbId === application.influencerId);
+        
+        if (influencer) {
+          // Create notification for the influencer
+          const notificationMessage = status === 'approved' 
+            ? "Your application has been approved!" 
+            : "Your application has been reviewed.";
+            
+          await supabase
+            .from('notifications')
+            .insert({
+              type: 'new_application',
+              message: notificationMessage,
+              target_type: 'influencer',
+              target_id: application.influencerId,
+              read: false
+            });
+        }
+      }
+      
+      toast.success(`Application ${status} successfully`);
+    } catch (error) {
+      console.error('Error updating application:', error);
+      toast.error("Failed to update application status");
+      throw error;
+    }
+  };
+  
   // Send a message
   const sendMessage = async (receiverId: string, content: string) => {
     if (!user) {
@@ -704,6 +756,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Application actions
       applyToCampaign,
+      updateApplication,
       
       // Message actions
       sendMessage,

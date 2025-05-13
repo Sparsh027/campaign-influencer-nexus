@@ -26,6 +26,7 @@ import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useNavigate } from 'react-router-dom';
 
 const CATEGORIES = [
   { id: 'fashion', label: 'Fashion' },
@@ -774,3 +775,19 @@ function CampaignCard({ campaign, onEdit, onDelete, onShowInfluencers }: Campaig
     </Card>
   );
 }
+
+const ViewCampaignAction: React.FC<{ id: string }> = ({ id }) => {
+  const navigate = useNavigate();
+  
+  return (
+    <DropdownMenuContent align="end">
+      <DropdownMenuItem onClick={() => navigate(`/campaigns/${id}`)}>
+        View Details
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onClick={() => handleDelete(id)}>
+        Delete
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  );
+};
