@@ -26,10 +26,10 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <DataProvider>
-          <Toaster />
-          <BrowserRouter>
+      <BrowserRouter>
+        <AuthProvider>
+          <DataProvider>
+            <Toaster />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/sign-in" element={<SignIn />} />
@@ -56,9 +56,9 @@ function App() {
               
               <Route path="*" element={<Navigate to="/not-found" replace />} />
             </Routes>
-          </BrowserRouter>
-        </DataProvider>
-      </AuthProvider>
+          </DataProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }

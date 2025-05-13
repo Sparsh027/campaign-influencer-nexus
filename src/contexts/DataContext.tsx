@@ -687,95 +687,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // New functions for CampaignDetail
   const getApplicationsForCampaign = (campaignId: string): Application[] => {
-    // For now, we'll return mock data that matches the Application type
-    return [
-      {
-        id: "app1",
-        campaignId: campaignId,
-        influencerId: "inf1",
-        status: "pending",
-        createdAt: new Date().toISOString(),
-        influencer: {
-          id: "inf1",
-          dbId: "inf1",
-          name: "Alex Johnson",
-          email: "alex@example.com",
-          role: "influencer",
-          instagram: "alex.style",
-          followerCount: 5000,
-          city: "New York",
-          categories: ["fashion", "lifestyle"],
-          profileCompleted: true
-        },
-        campaign: campaigns.find(c => c.id === campaignId)
-      },
-      {
-        id: "app2",
-        campaignId: campaignId,
-        influencerId: "inf2",
-        status: "pending",
-        createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-        influencer: {
-          id: "inf2",
-          dbId: "inf2",
-          name: "Jamie Smith",
-          email: "jamie@example.com",
-          role: "influencer",
-          instagram: "jamie.travels",
-          followerCount: 8000,
-          city: "Los Angeles",
-          categories: ["travel", "food"],
-          profileCompleted: true
-        },
-        campaign: campaigns.find(c => c.id === campaignId)
-      }
-    ];
+    return applications.filter(app => app.campaignId === campaignId);
   };
 
   const getApprovedInfluencersForCampaign = (campaignId: string): Application[] => {
-    // Mock data for approved applications that match the Application type
-    return [
-      {
-        id: "app3",
-        campaignId: campaignId,
-        influencerId: "inf3",
-        status: "approved",
-        createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-        influencer: {
-          id: "inf3",
-          dbId: "inf3",
-          name: "Morgan Taylor",
-          email: "morgan@example.com",
-          role: "influencer",
-          instagram: "morgan.fit",
-          followerCount: 12000,
-          city: "Miami",
-          categories: ["fitness", "lifestyle"],
-          profileCompleted: true
-        },
-        campaign: campaigns.find(c => c.id === campaignId)
-      }
-    ];
+    return applications.filter(app => app.campaignId === campaignId && app.status === 'approved');
   };
 
   const updateApplicationStatus = async (applicationId: string, status: 'approved' | 'rejected'): Promise<void> => {
-    // For the demo, we just simulate the API call with a timeout
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        console.log(`Application ${applicationId} status updated to ${status}`);
-        resolve();
-      }, 500);
-    });
+    setApplications(prev => prev.map(app => 
+      app.id === applicationId ? { ...app, status } : app
+    ));
+    // In a real app, we would make an API call to update the status
   };
 
   const createMessage = async (messageData: { receiverId: string, receiverType: 'admin' | 'influencer', content: string }): Promise<void> => {
-    // For the demo, we just simulate the API call with a timeout
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        console.log('Message sent:', messageData);
-        resolve();
-      }, 500);
-    });
+    const newMessage: Message = {
+      id: Math.random().toString(36).substring(2, 11),
+      senderId: '1', // Assume logged in user is admin for simplicity
+      senderType: 'admin',
+      receiverId: messageData.receiverId,
+      receiverType: messageData.receiverType,
+      content: messageData.content,
+      read: false,
+      createdAt: new Date().toISOString()
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
+    // In a real app, we would make an API call to send the message
   };
 
   return (
