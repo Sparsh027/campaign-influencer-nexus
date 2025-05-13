@@ -1,6 +1,4 @@
-
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -21,7 +19,7 @@ import { Campaign } from '@/types/data';
 import { InfluencerUser } from '@/types/auth';
 import { useData } from '@/contexts/DataContext';
 import { toast } from 'sonner';
-import { Check, Eye, FileEdit, MoreVertical, Plus, Search, Trash2, UserCheck, Users } from 'lucide-react';
+import { Check, FileEdit, MoreVertical, Plus, Search, Trash2, UserCheck, Users } from 'lucide-react';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -63,7 +61,6 @@ const campaignSchema = z.object({
 type CampaignFormValues = z.infer<typeof campaignSchema>;
 
 export default function AdminCampaigns() {
-  const navigate = useNavigate();
   const { campaigns, createCampaign, updateCampaign, deleteCampaign, getEligibleInfluencers } = useData();
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -700,8 +697,6 @@ interface CampaignCardProps {
 }
 
 function CampaignCard({ campaign, onEdit, onDelete, onShowInfluencers }: CampaignCardProps) {
-  const navigate = useNavigate();
-  
   const statusColor = {
     active: 'bg-green-500',
     completed: 'bg-blue-500',
@@ -738,9 +733,6 @@ function CampaignCard({ campaign, onEdit, onDelete, onShowInfluencers }: Campaig
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate(`/admin/campaigns/${campaign.id}`)}>
-                <Eye className="mr-2 h-4 w-4" /> View Details
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onEdit(campaign)}>
                 <FileEdit className="mr-2 h-4 w-4" /> Edit
               </DropdownMenuItem>
