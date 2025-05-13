@@ -20,6 +20,7 @@ interface DataContextType {
   // Applications
   applications: Application[];
   applyToCampaign: (campaignId: string) => Promise<void>;
+  updateApplicationStatus: (applicationId: string, status: 'approved' | 'rejected') => Promise<void>;
   
   // Messages
   messages: Message[];
@@ -34,7 +35,7 @@ interface DataContextType {
   getEligibleCampaigns: () => Campaign[];
   getEligibleInfluencers: (campaignId: string) => InfluencerUser[];
   isInfluencerEligible: (campaignId: string, influencerId?: string) => boolean;
-  hasApplied: (campaignId: string) => boolean;
+  hasApplied: (campaignId: string, influencerId?: string) => boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -518,23 +519,70 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .select('id')
           .single();
           
-        if (!adminError && adminData) {
-          await supabase
-            .from('notifications')
-            .insert({
-              type: 'new_application',
-              message: `${user.name} applied to ${campaign.title}`,
-              target_type: 'admin',
-              target_id: adminData.id,
-              read: false
-            });
+        if (!adminData) {
+          throw new Error("Admin not found");
         }
+        
+        await supabase
+          .from('notifications')
+          .insert({
+            type: 'new_application',
+            message: `${user.name} applied to ${campaign.title}`,
+            target_type: 'admin',
+            target_id: adminData.id,
+            read: false
+          });
         
         toast.success("Application submitted successfully");
       }
     } catch (error: any) {
       console.error('Error applying to campaign:', error);
       toast.error(error?.message || "Failed to apply to campaign");
+      throw error;
+    }
+  };
+  
+  // Update application status
+  const updateApplicationStatus = async (applicationId: string, status: 'approved' | 'rejected') => {
+    if (!user || user.role !== "admin") {
+      throw new Error("Only admins can update application status");
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({ status })
+        .eq('id', applicationId);
+        
+      if (error) throw error;
+      
+      setApplications(prev => prev.map(app => 
+        app.id === applicationId ? { ...app, status } : app
+      ));
+      
+      // Get the application to send notification
+      const application = applications.find(app => app.id === applicationId);
+      if (application) {
+        const campaign = campaigns.find(c => c.id === application.campaignId);
+        
+        // Create notification for influencer
+        await supabase
+          .from('notifications')
+          .insert({
+            type: status === 'approved' ? 'application_approved' : 'application_rejected',
+            message: status === 'approved' 
+              ? `Your application for ${campaign?.title || 'a campaign'} has been approved!` 
+              : `Your application for ${campaign?.title || 'a campaign'} was not approved.`,
+            target_type: 'influencer',
+            target_id: application.influencerId,
+            read: false
+          });
+      }
+      
+      toast.success(`Application ${status === 'approved' ? 'approved' : 'rejected'} successfully`);
+    } catch (error) {
+      console.error('Error updating application status:', error);
+      toast.error("Failed to update application status");
       throw error;
     }
   };
@@ -675,11 +723,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   
   // Check if current user has applied to a campaign
-  const hasApplied = (campaignId: string) => {
-    if (!user) return false;
+  const hasApplied = (campaignId: string, influencerId?: string) => {
+    const idToCheck = influencerId || (user?.dbId || '');
     
     return applications.some(
-      app => app.campaignId === campaignId && app.influencerId === user.dbId
+      app => app.campaignId === campaignId && app.influencerId === idToCheck
     );
   };
   
@@ -704,6 +752,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Application actions
       applyToCampaign,
+      updateApplicationStatus,
       
       // Message actions
       sendMessage,

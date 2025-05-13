@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,6 +22,7 @@ import AdminCampaigns from "./pages/admin/Campaigns";
 import AdminInfluencers from "./pages/admin/Influencers";
 import AdminInbox from "./pages/admin/Inbox";
 import AdminSettings from "./pages/admin/Settings";
+import CampaignDetail from "./pages/admin/CampaignDetail";
 
 // Influencer Pages
 import InfluencerDashboard from "./pages/influencer/Dashboard";
@@ -54,6 +56,7 @@ const App = () => (
                 <Route index element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="campaigns" element={<AdminCampaigns />} />
+                <Route path="campaign/:campaignId" element={<CampaignDetail />} />
                 <Route path="influencers" element={<AdminInfluencers />} />
                 <Route path="inbox" element={<AdminInbox />} />
                 <Route path="settings" element={<AdminSettings />} />
