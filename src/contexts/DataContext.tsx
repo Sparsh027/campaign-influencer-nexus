@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Campaign, Application, Message, Notification } from "../types/data";
 import { User, InfluencerUser } from "../types/auth";
@@ -35,6 +36,12 @@ interface DataContextType {
   getEligibleInfluencers: (campaignId: string) => InfluencerUser[];
   isInfluencerEligible: (campaignId: string, influencerId?: string) => boolean;
   hasApplied: (campaignId: string) => boolean;
+
+  // CampaignDetail actions
+  getApplicationsForCampaign: (campaignId: string) => Application[];
+  getApprovedInfluencersForCampaign: (campaignId: string) => Application[];
+  updateApplicationStatus: (applicationId: string, status: 'approved' | 'rejected') => Promise<void>;
+  createMessage: (messageData: { receiverId: string, receiverType: 'admin' | 'influencer', content: string }) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -695,26 +702,79 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateApplicationStatus = async (applicationId: string, status: 'approved' | 'rejected'): Promise<void> => {
-    setApplications(prev => prev.map(app => 
-      app.id === applicationId ? { ...app, status } : app
-    ));
-    // In a real app, we would make an API call to update the status
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({ status })
+        .eq('id', applicationId);
+        
+      if (error) throw error;
+      
+      setApplications(prev => prev.map(app => 
+        app.id === applicationId ? { ...app, status } : app
+      ));
+      
+      toast.success(`Application ${status}`);
+    } catch (error) {
+      console.error('Error updating application status:', error);
+      toast.error("Failed to update application status");
+      throw error;
+    }
   };
 
   const createMessage = async (messageData: { receiverId: string, receiverType: 'admin' | 'influencer', content: string }): Promise<void> => {
-    const newMessage: Message = {
-      id: Math.random().toString(36).substring(2, 11),
-      senderId: '1', // Assume logged in user is admin for simplicity
-      senderType: 'admin',
-      receiverId: messageData.receiverId,
-      receiverType: messageData.receiverType,
-      content: messageData.content,
-      read: false,
-      createdAt: new Date().toISOString()
-    };
+    if (!user) {
+      throw new Error("You must be logged in to send messages");
+    }
     
-    setMessages(prev => [...prev, newMessage]);
-    // In a real app, we would make an API call to send the message
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          sender_type: user.role,
+          sender_id: user.dbId,
+          receiver_type: messageData.receiverType,
+          receiver_id: messageData.receiverId,
+          content: messageData.content,
+          read: false
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      if (data) {
+        const newMessage: Message = {
+          id: data.id,
+          senderType: data.sender_type,
+          senderId: data.sender_id,
+          receiverType: data.receiver_type,
+          receiverId: data.receiver_id,
+          content: data.content,
+          read: data.read,
+          createdAt: data.created_at
+        };
+        
+        setMessages(prev => [...prev, newMessage]);
+        
+        // Create notification for receiver
+        await supabase
+          .from('notifications')
+          .insert({
+            type: 'new_message',
+            message: `New message from ${user.name}`,
+            target_type: messageData.receiverType,
+            target_id: messageData.receiverId,
+            read: false
+          });
+          
+        toast.success("Message sent successfully");
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error("Failed to send message");
+      throw error;
+    }
   };
 
   return (

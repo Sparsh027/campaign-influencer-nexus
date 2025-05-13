@@ -41,7 +41,7 @@ export interface Notification {
   message: string;
   targetType: 'admin' | 'influencer';
   targetId: string;
-  userId: string; // Adding userId field to fix errors
+  userId: string;
   read: boolean;
   createdAt: string;
 }

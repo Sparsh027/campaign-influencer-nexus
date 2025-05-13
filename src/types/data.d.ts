@@ -80,4 +80,5 @@ export interface DataContextType {
   getEligibleCampaigns: () => Campaign[];
   isInfluencerEligible: (campaignId: string, influencerId?: string) => boolean;
   hasApplied: (campaignId: string) => boolean;
+  getEligibleInfluencers: (campaignId: string) => InfluencerUser[];
 }
