@@ -25,6 +25,15 @@ export interface InfluencerUser {
 
 export type User = AdminUser | InfluencerUser;
 
+// Type guards to check user types
+export function isAdminUser(user: User): user is AdminUser {
+  return user.role === "admin";
+}
+
+export function isInfluencerUser(user: User): user is InfluencerUser {
+  return user.role === "influencer";
+}
+
 export interface AuthContextType {
   user: User | null;
   loading: boolean;

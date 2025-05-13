@@ -9,7 +9,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, Check, MessageSquare, User, X } from 'lucide-react';
 import { Campaign, Application } from '@/types/data';
-import { InfluencerUser } from '@/types/auth';
+import { InfluencerUser, User } from '@/types/auth';
 import { useData } from '@/contexts/DataContext';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -21,6 +21,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+
+// Type guard to check if a user is an InfluencerUser
+const isInfluencerUser = (user: User): user is InfluencerUser => {
+  return user.role === 'influencer';
+};
 
 export default function CampaignDetail() {
   const { id } = useParams();
@@ -249,7 +254,7 @@ export default function CampaignDetail() {
                   {pendingApplications.length > 0 ? (
                     pendingApplications.map(application => {
                       const influencer = application.influencer;
-                      if (!influencer) return null;
+                      if (!influencer || !isInfluencerUser(influencer)) return null;
                       
                       return (
                         <TableRow key={application.id}>
@@ -328,7 +333,7 @@ export default function CampaignDetail() {
                   {approvedApplications.length > 0 ? (
                     approvedApplications.map(application => {
                       const influencer = application.influencer;
-                      if (!influencer) return null;
+                      if (!influencer || !isInfluencerUser(influencer)) return null;
                       
                       return (
                         <TableRow key={application.id}>
