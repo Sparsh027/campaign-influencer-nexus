@@ -26,6 +26,7 @@ interface DataContextType {
   messages: Message[];
   conversations: { id: string; name: string; unread: number }[];
   sendMessage: (receiverId: string, content: string) => Promise<void>;
+  fetchMessages: () => Promise<void>;
   
   // Notifications
   notifications: Notification[];
@@ -767,6 +768,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Message actions
       sendMessage,
+      fetchMessages,
       
       // Notification actions
       markNotificationAsRead,
