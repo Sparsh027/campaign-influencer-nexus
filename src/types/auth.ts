@@ -21,6 +21,7 @@ export interface InfluencerUser {
   categories?: string[];
   city?: string;
   profileCompleted: boolean;
+  createdAt: string; // Added the createdAt property to fix the TypeScript error
 }
 
 export type User = AdminUser | InfluencerUser;
