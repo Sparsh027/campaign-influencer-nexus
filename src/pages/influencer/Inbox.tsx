@@ -11,10 +11,11 @@ import { toast } from '@/hooks/use-toast';
 
 export default function InfluencerInbox() {
   const { user } = useAuth();
-  const { conversations, messages, sendMessage } = useData();
+  const { conversations, messages, sendMessage, fetchMessages } = useData();
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
 
   // Get conversation messages
   const conversationMessages = messages.filter(
@@ -22,6 +23,14 @@ export default function InfluencerInbox() {
       (msg.senderId === user?.dbId && msg.receiverId === selectedContact) ||
       (msg.senderId === selectedContact && msg.receiverId === user?.dbId)
   ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  // Initial load of messages
+  useEffect(() => {
+    if (user?.dbId) {
+      fetchMessages();
+      setLoading(false);
+    }
+  }, [user?.dbId, fetchMessages]);
 
   // Select admin as default if no conversation is selected and admin is in conversations
   useEffect(() => {
@@ -60,7 +69,7 @@ export default function InfluencerInbox() {
         },
         () => {
           // When we receive a message, refresh messages
-          // We'll rely on DataContext to handle the data fetching
+          fetchMessages();
         }
       )
       .subscribe();
@@ -68,7 +77,7 @@ export default function InfluencerInbox() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.dbId]);
+  }, [user?.dbId, fetchMessages]);
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || !selectedContact) return;
@@ -101,6 +110,14 @@ export default function InfluencerInbox() {
       return '';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

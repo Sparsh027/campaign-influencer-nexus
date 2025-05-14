@@ -12,7 +12,7 @@ import { toast } from '@/hooks/use-toast';
 
 export default function AdminInbox() {
   const { user } = useAuth();
-  const { conversations, influencers, messages, sendMessage } = useData();
+  const { conversations, influencers, messages, sendMessage, fetchMessages } = useData();
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -32,8 +32,8 @@ export default function AdminInbox() {
   // Get conversation messages
   const conversationMessages = messages.filter(
     msg => 
-      (msg.senderId === user?.id && msg.receiverId === selectedContact) ||
-      (msg.senderId === selectedContact && msg.receiverId === user?.id)
+      (msg.senderId === user?.dbId && msg.receiverId === selectedContact) ||
+      (msg.senderId === selectedContact && msg.receiverId === user?.dbId)
   ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
   // Scroll to bottom of messages
@@ -42,6 +42,13 @@ export default function AdminInbox() {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [conversationMessages]);
+
+  // Initial load of messages
+  useEffect(() => {
+    if (user?.dbId && selectedContact) {
+      fetchMessages();
+    }
+  }, [user?.dbId, selectedContact]);
 
   // Setup real-time subscription for new messages
   useEffect(() => {
@@ -59,7 +66,7 @@ export default function AdminInbox() {
         },
         () => {
           // When we receive a message, refresh messages
-          // We'll rely on DataContext to handle the data fetching
+          fetchMessages();
         }
       )
       .subscribe();
@@ -67,7 +74,7 @@ export default function AdminInbox() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.dbId]);
+  }, [user?.dbId, fetchMessages]);
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || !selectedContact) return;

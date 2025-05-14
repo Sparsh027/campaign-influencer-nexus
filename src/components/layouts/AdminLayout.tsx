@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { LayoutDashboard, Users, BarChart, MessageSquare, Settings, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, BarChart, MessageSquare, Settings, Menu, X, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -36,6 +36,7 @@ export default function AdminLayout() {
     { icon: BarChart, name: 'Campaigns', path: '/admin/campaigns' },
     { icon: Users, name: 'Influencers', path: '/admin/influencers' },
     { icon: MessageSquare, name: 'Inbox', path: '/admin/inbox' },
+    { icon: Bell, name: 'Notifications', path: '/admin/notifications' },
     { icon: Settings, name: 'Settings', path: '/admin/settings' },
   ];
 

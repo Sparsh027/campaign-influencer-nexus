@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '@/contexts/DataContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ export default function AdminCampaigns() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteCampaignId, setDeleteCampaignId] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   // Filter campaigns based on search query
   const filteredCampaigns = campaigns.filter(campaign => 
@@ -26,7 +27,7 @@ export default function AdminCampaigns() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold">Campaigns</h1>
-        <Button onClick={() => window.location.href = '/admin/campaign/new'}>
+        <Button onClick={() => navigate('/admin/campaign/new')}>
           <Plus className="h-4 w-4 mr-2" />
           New Campaign
         </Button>
@@ -100,7 +101,7 @@ export default function AdminCampaigns() {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => window.location.href = `/admin/campaign/${campaign.id}/edit`}
+                  onClick={() => navigate(`/admin/campaign/${campaign.id}/edit`)}
                 >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit

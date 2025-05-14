@@ -24,6 +24,9 @@ import AdminInbox from "./pages/admin/Inbox";
 import AdminSettings from "./pages/admin/Settings";
 import CampaignDetail from "./pages/admin/CampaignDetail";
 import AdminApplications from "./pages/admin/Applications";
+import NewCampaign from "./pages/admin/NewCampaign";
+import EditCampaign from "./pages/admin/EditCampaign";
+import AdminNotifications from "./pages/admin/Notifications";
 
 // Influencer Pages
 import InfluencerDashboard from "./pages/influencer/Dashboard";
@@ -57,10 +60,13 @@ const App = () => (
                 <Route index element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="campaigns" element={<AdminCampaigns />} />
+                <Route path="campaign/new" element={<NewCampaign />} />
                 <Route path="campaign/:campaignId" element={<CampaignDetail />} />
+                <Route path="campaign/:campaignId/edit" element={<EditCampaign />} />
                 <Route path="influencers" element={<AdminInfluencers />} />
                 <Route path="applications" element={<AdminApplications />} />
                 <Route path="inbox" element={<AdminInbox />} />
+                <Route path="notifications" element={<AdminNotifications />} />
                 <Route path="settings" element={<AdminSettings />} />
               </Route>
 
