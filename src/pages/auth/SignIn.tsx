@@ -64,21 +64,6 @@ export default function SignIn() {
     }
   }
 
-  // For demo purposes - easy login as admin
-  const handleAdminLogin = async () => {
-    if (isLoading) return;
-    
-    setIsLoading(true);
-    try {
-      await login('admin@dotfluence.com', 'password');
-      // Navigation is handled in the AuthContext after successful login
-    } catch (error) {
-      console.error('Admin login error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-brand-50 to-white">
       <div className="w-full max-w-md">
@@ -137,18 +122,7 @@ export default function SignIn() {
             </p>
           </div>
           
-          {/* Demo helper */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <p className="text-xs text-center text-gray-500 mb-2">Demo Access</p>
-            <Button 
-              variant="outline" 
-              className="w-full text-sm" 
-              onClick={handleAdminLogin}
-              disabled={isLoading}
-            >
-              Login as Admin
-            </Button>
-          </div>
+          {/* Demo Access section removed */}
         </div>
       </div>
     </div>

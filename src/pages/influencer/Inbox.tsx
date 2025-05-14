@@ -193,13 +193,13 @@ export default function InfluencerInbox() {
           </Card>
         )}
 
-        {/* Chat area - conditionally sized on mobile */}
+        {/* Chat area - improved for mobile */}
         {(!isMobile || (isMobile && !showContacts)) && (
-          <Card className={`h-full flex flex-col overflow-hidden ${isMobile ? 'col-span-full' : 'md:col-span-2'}`}>
+          <Card className={`h-full flex flex-col overflow-hidden ${isMobile ? 'col-span-full h-[calc(100vh-150px)]' : 'md:col-span-2'}`}>
             {selectedContact ? (
               <>
                 {/* Chat header */}
-                <CardHeader className="border-b">
+                <CardHeader className="border-b py-3">
                   <div className="flex items-center gap-3">
                     {isMobile && (
                       <Button 
@@ -220,7 +220,7 @@ export default function InfluencerInbox() {
                   </div>
                 </CardHeader>
 
-                {/* Messages */}
+                {/* Messages - improved scrolling */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   {conversationMessages.length > 0 ? (
                     conversationMessages.map((msg) => {
@@ -269,6 +269,7 @@ export default function InfluencerInbox() {
                           handleSendMessage();
                         }
                       }}
+                      className="flex-1"
                     />
                     <Button onClick={handleSendMessage}>Send</Button>
                   </div>

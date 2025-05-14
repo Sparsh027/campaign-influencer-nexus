@@ -34,8 +34,8 @@ export default function InfluencerLayout() {
 
   return (
     <div className="flex min-h-screen">
-      {/* Mobile sidebar toggle */}
-      <div className="fixed top-4 left-4 z-40 md:hidden">
+      {/* Mobile sidebar toggle - moved to right side */}
+      <div className="fixed top-4 right-4 z-40 md:hidden">
         <Button
           size="icon"
           variant="outline"
@@ -54,7 +54,7 @@ export default function InfluencerLayout() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - still opens from left */}
       <aside 
         className={cn(
           "fixed top-0 bottom-0 left-0 z-30 w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-300 ease-in-out",
