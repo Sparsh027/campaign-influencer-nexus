@@ -136,7 +136,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           phone: influencerData.phone || undefined,
           categories: influencerData.categories || undefined,
           city: influencerData.city || undefined,
-          profileCompleted: influencerData.profile_completed
+          profileCompleted: influencerData.profile_completed,
+          createdAt: influencerData.created_at
         });
         setLoading(false);
         return;

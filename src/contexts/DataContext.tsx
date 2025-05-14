@@ -114,7 +114,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           phone: i.phone || undefined,
           categories: i.categories || undefined,
           city: i.city || undefined,
-          profileCompleted: i.profile_completed
+          profileCompleted: i.profile_completed,
+          createdAt: i.created_at
         }));
         
         setInfluencers(formattedInfluencers);
