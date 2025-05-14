@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { User } from 'lucide-react';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function AdminInbox() {
   const { user } = useAuth();
@@ -13,9 +14,18 @@ export default function AdminInbox() {
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [loading, setLoading] = useState(true);
 
   // Get the selectedContactUser details
   const selectedContactUser = influencers.find(i => i.id === selectedContact);
+
+  // Select first conversation as default or when conversations change
+  useEffect(() => {
+    if (conversations.length > 0 && !selectedContact) {
+      setSelectedContact(conversations[0].id);
+    }
+    setLoading(false);
+  }, [conversations, selectedContact]);
 
   // Get conversation messages
   const conversationMessages = messages.filter(
@@ -38,6 +48,14 @@ export default function AdminInbox() {
     setMessageText('');
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Spinner />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Inbox</h1>
@@ -45,7 +63,7 @@ export default function AdminInbox() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-200px)] min-h-[500px]">
         {/* Contacts sidebar */}
         <Card className="h-full overflow-hidden flex flex-col">
-          <CardHeader className="border-b">
+          <CardHeader className="border-b pb-3">
             <CardTitle className="text-lg">Conversations</CardTitle>
           </CardHeader>
           <div className="flex-1 overflow-y-auto">
@@ -62,7 +80,7 @@ export default function AdminInbox() {
                     <div className="h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center">
                       <User className="h-5 w-5 text-brand-600" />
                     </div>
-                    <div className="flex-1 min-width-0">
+                    <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{conversation.name}</p>
                       {conversation.unread > 0 && (
                         <div className="bg-brand-500 text-white px-2 rounded-full text-xs w-fit">
@@ -88,7 +106,7 @@ export default function AdminInbox() {
           {selectedContact ? (
             <>
               {/* Chat header */}
-              <CardHeader className="border-b">
+              <CardHeader className="border-b pb-3">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center">
                     <User className="h-5 w-5 text-brand-600" />
@@ -158,11 +176,16 @@ export default function AdminInbox() {
             </>
           ) : (
             <div className="flex items-center justify-center h-full">
-              <div className="text-center">
+              <div className="text-center p-4">
                 <h2 className="text-lg font-medium mb-2">Select a conversation</h2>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground mb-4">
                   Choose a conversation from the sidebar to start messaging.
                 </p>
+                {conversations.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No conversations available. Influencers will appear here when they message you.
+                  </p>
+                )}
               </div>
             </div>
           )}

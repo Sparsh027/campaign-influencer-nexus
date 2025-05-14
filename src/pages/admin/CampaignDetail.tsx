@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import EligibleInfluencers from '@/components/campaigns/EligibleInfluencers';
 import CampaignApplications from '@/components/campaigns/CampaignApplications';
 import ApprovedInfluencers from '@/components/campaigns/ApprovedInfluencers';
@@ -17,6 +18,7 @@ export default function CampaignDetail() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { campaigns, applications, getEligibleInfluencers } = useData();
+  const isMobile = useIsMobile();
   
   const [campaign, setCampaign] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -53,12 +55,12 @@ export default function CampaignDetail() {
   
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/admin/campaigns')}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:justify-between">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/admin/campaigns')} className="px-0 sm:px-2">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to campaigns
         </Button>
-        <h1 className="text-2xl font-bold">{campaign.title}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">{campaign.title}</h1>
       </div>
       
       <Card>
@@ -68,16 +70,16 @@ export default function CampaignDetail() {
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div>
             <p className="text-sm font-medium text-muted-foreground">Description</p>
-            <p>{campaign.description}</p>
+            <p className="mt-1">{campaign.description}</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Min Followers</p>
-              <p>{campaign.minFollowers.toLocaleString()}</p>
+              <p className="mt-1">{campaign.minFollowers.toLocaleString()}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">City</p>
-              <p>{campaign.city || 'Any location'}</p>
+              <p className="mt-1">{campaign.city || 'Any location'}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Categories</p>
@@ -102,30 +104,32 @@ export default function CampaignDetail() {
       </Card>
       
       <Tabs defaultValue="eligible" className="w-full">
-        <TabsList className="w-full md:w-auto">
-          <TabsTrigger value="eligible">
-            Eligible Influencers 
-            <Badge variant="outline" className="ml-2">{eligibleInfluencers.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="applications">
-            Applications 
-            <Badge variant="outline" className="ml-2">{pendingApplications.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="approved">
-            Approved 
-            <Badge variant="outline" className="ml-2">{approvedApplications.length}</Badge>
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-2">
+          <TabsList className="w-full sm:w-auto inline-flex">
+            <TabsTrigger value="eligible" className="flex-1 sm:flex-initial whitespace-nowrap">
+              Eligible Influencers 
+              <Badge variant="outline" className="ml-2">{eligibleInfluencers.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="applications" className="flex-1 sm:flex-initial whitespace-nowrap">
+              Applications 
+              <Badge variant="outline" className="ml-2">{pendingApplications.length}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="approved" className="flex-1 sm:flex-initial whitespace-nowrap">
+              Approved 
+              <Badge variant="outline" className="ml-2">{approvedApplications.length}</Badge>
+            </TabsTrigger>
+          </TabsList>
+        </div>
         
-        <TabsContent value="eligible">
+        <TabsContent value="eligible" className="mt-4 sm:mt-6">
           <EligibleInfluencers campaignId={campaignId as string} />
         </TabsContent>
         
-        <TabsContent value="applications">
+        <TabsContent value="applications" className="mt-4 sm:mt-6">
           <CampaignApplications campaignId={campaignId as string} />
         </TabsContent>
         
-        <TabsContent value="approved">
+        <TabsContent value="approved" className="mt-4 sm:mt-6">
           <ApprovedInfluencers campaignId={campaignId as string} />
         </TabsContent>
       </Tabs>

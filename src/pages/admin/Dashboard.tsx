@@ -3,14 +3,27 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useData } from '@/contexts/DataContext';
-import { BarChart, Users, LayoutDashboard, MessageSquare, Bell } from 'lucide-react';
+import { BarChart, Users, LayoutDashboard, MessageSquare, Bell, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 
 export default function AdminDashboard() {
   const { campaigns, influencers, applications, notifications } = useData();
   
-  const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
+  const activeCampaigns = campaigns.filter(c => c.status === 'active');
   const recentNotifications = [...notifications]
     .filter(n => n.targetType === 'admin')
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
+
+  // Get recent influencer signups
+  const recentInfluencers = [...influencers]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 3);
+
+  // Get recent applications
+  const recentApplications = applications
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
@@ -28,7 +41,7 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{campaigns.length}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {activeCampaigns} active campaigns
+              {activeCampaigns.length} active campaigns
             </p>
           </CardContent>
         </Card>
@@ -52,7 +65,7 @@ export default function AdminDashboard() {
             <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeCampaigns}</div>
+            <div className="text-2xl font-bold">{activeCampaigns.length}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {applications.length} total applications
             </p>
@@ -80,36 +93,94 @@ export default function AdminDashboard() {
         <Card className="col-span-1">
           <CardHeader>
             <CardTitle>Recent Updates</CardTitle>
-            <CardDescription>Latest platform activity</CardDescription>
+            <CardDescription className="flex justify-between items-center">
+              <span>Latest platform activity</span>
+              {(recentInfluencers.length > 0 || activeCampaigns.length > 0) && (
+                <Button variant="link" size="sm" className="p-0" asChild>
+                  <Link to="/admin/notifications">View All</Link>
+                </Button>
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {recentNotifications.length > 0 ? (
-              recentNotifications.map((notification) => (
-                <div key={notification.id} className="flex items-center gap-4 border-b border-gray-100 pb-3">
-                  <div className="bg-brand-100 p-2 rounded-full">
-                    <Bell className="h-4 w-4 text-brand-600" />
+            {/* New influencers who signed up */}
+            {recentInfluencers.length > 0 && (
+              <>
+                <h3 className="text-sm font-medium mb-2">New Influencers</h3>
+                {recentInfluencers.map((influencer) => (
+                  <div key={`influencer-${influencer.id}`} className="flex items-center gap-4 border-b border-gray-100 pb-3">
+                    <div className="bg-brand-100 p-2 rounded-full">
+                      <User className="h-4 w-4 text-brand-600" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">{influencer.name}</p>
+                      <div className="flex gap-2 items-center">
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(influencer.createdAt), 'MMM d, yyyy')}
+                        </p>
+                        <Badge variant="outline" className="text-xs">New</Badge>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-sm">{notification.message}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(notification.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
+                ))}
+              </>
+            )}
+
+            {/* Active campaigns */}
+            {activeCampaigns.length > 0 && (
+              <>
+                <h3 className="text-sm font-medium mb-2">Active Campaigns</h3>
+                {activeCampaigns.slice(0, 3).map((campaign) => (
+                  <div key={`campaign-${campaign.id}`} className="flex items-center gap-4 border-b border-gray-100 pb-3">
+                    <div className="bg-brand-100 p-2 rounded-full">
+                      <BarChart className="h-4 w-4 text-brand-600" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">{campaign.title}</p>
+                      <div className="flex gap-2 items-center">
+                        <Badge variant="default" className="text-xs">Active</Badge>
+                        <p className="text-xs text-muted-foreground">
+                          Created {format(new Date(campaign.createdAt), 'MMM d, yyyy')}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">No recent updates</p>
+                ))}
+              </>
+            )}
+
+            {/* Show notifications if no influencers or campaigns */}
+            {recentInfluencers.length === 0 && activeCampaigns.length === 0 && (
+              <>
+                {recentNotifications.length > 0 ? (
+                  recentNotifications.map((notification) => (
+                    <div key={notification.id} className="flex items-center gap-4 border-b border-gray-100 pb-3">
+                      <div className="bg-brand-100 p-2 rounded-full">
+                        <Bell className="h-4 w-4 text-brand-600" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm">{notification.message}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(notification.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No recent updates</p>
+                )}
+              </>
             )}
             
-            {recentNotifications.length > 0 && (
-              <Button variant="outline" size="sm" className="w-full mt-2">
-                View All Updates
+            {recentNotifications.length > 0 && recentInfluencers.length === 0 && activeCampaigns.length === 0 && (
+              <Button variant="outline" size="sm" asChild className="w-full mt-2">
+                <Link to="/admin/notifications">View All Updates</Link>
               </Button>
             )}
           </CardContent>
@@ -118,37 +189,39 @@ export default function AdminDashboard() {
         <Card className="col-span-1">
           <CardHeader>
             <CardTitle>Recent Applications</CardTitle>
-            <CardDescription>Latest campaign applications</CardDescription>
+            <CardDescription className="flex justify-between items-center">
+              <span>Latest campaign applications</span>
+              {recentApplications.length > 0 && (
+                <Button variant="link" size="sm" className="p-0" asChild>
+                  <Link to="/admin/applications">View All Applications</Link>
+                </Button>
+              )}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {applications.length > 0 ? (
-              applications
-                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                .slice(0, 5)
-                .map((application) => {
-                  const campaign = campaigns.find(c => c.id === application.campaignId);
-                  const influencer = influencers.find(i => i.id === application.influencerId);
-                  
-                  return (
-                    <div key={application.id} className="flex items-center justify-between border-b border-gray-100 pb-3">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">{influencer?.name || 'Unknown Influencer'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Applied to: {campaign?.title || 'Unknown Campaign'}
-                        </p>
-                      </div>
-                      <Button variant="outline" size="sm">Review</Button>
+            {recentApplications.length > 0 ? (
+              recentApplications.map((application) => {
+                const campaign = campaigns.find(c => c.id === application.campaignId);
+                const influencer = influencers.find(i => i.dbId === application.influencerId);
+                
+                return (
+                  <div key={application.id} className="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">{influencer?.name || 'Unknown Influencer'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Applied to: {campaign?.title || 'Unknown Campaign'}
+                      </p>
                     </div>
-                  );
-                })
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to={`/admin/campaign/${application.campaignId}?tab=applications&highlight=${application.id}`}>
+                        Review
+                      </Link>
+                    </Button>
+                  </div>
+                );
+              })
             ) : (
               <p className="text-sm text-muted-foreground">No recent applications</p>
-            )}
-            
-            {applications.length > 0 && (
-              <Button variant="outline" size="sm" className="w-full mt-2">
-                View All Applications
-              </Button>
             )}
           </CardContent>
         </Card>

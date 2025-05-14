@@ -23,6 +23,7 @@ import AdminInfluencers from "./pages/admin/Influencers";
 import AdminInbox from "./pages/admin/Inbox";
 import AdminSettings from "./pages/admin/Settings";
 import CampaignDetail from "./pages/admin/CampaignDetail";
+import AdminApplications from "./pages/admin/Applications";
 
 // Influencer Pages
 import InfluencerDashboard from "./pages/influencer/Dashboard";
@@ -58,6 +59,7 @@ const App = () => (
                 <Route path="campaigns" element={<AdminCampaigns />} />
                 <Route path="campaign/:campaignId" element={<CampaignDetail />} />
                 <Route path="influencers" element={<AdminInfluencers />} />
+                <Route path="applications" element={<AdminApplications />} />
                 <Route path="inbox" element={<AdminInbox />} />
                 <Route path="settings" element={<AdminSettings />} />
               </Route>

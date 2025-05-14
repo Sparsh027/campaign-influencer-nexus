@@ -3,29 +3,18 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useData } from '@/contexts/DataContext';
 import { Button } from '@/components/ui/button';
-import { 
-  Table, TableHeader, TableBody, TableHead, 
-  TableRow, TableCell 
-} from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Card, CardContent, CardDescription, 
-  CardHeader, CardTitle 
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Plus, Search, Edit, Trash, Eye } from 'lucide-react';
 import { format } from 'date-fns';
-
-import NewCampaignDialog from '@/components/admin/NewCampaignDialog';
-import EditCampaignDialog from '@/components/admin/EditCampaignDialog';
-import DeleteConfirmDialog from '@/components/admin/DeleteConfirmDialog';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function AdminCampaigns() {
   const { campaigns, deleteCampaign } = useData();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isNewCampaignOpen, setIsNewCampaignOpen] = useState(false);
-  const [editCampaign, setEditCampaign] = useState<string | null>(null);
   const [deleteCampaignId, setDeleteCampaignId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   // Filter campaigns based on search query
   const filteredCampaigns = campaigns.filter(campaign => 
@@ -35,138 +24,128 @@ export default function AdminCampaigns() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold">Campaigns</h1>
-        <Button onClick={() => setIsNewCampaignOpen(true)}>
+        <Button onClick={() => window.location.href = '/admin/campaign/new'}>
           <Plus className="h-4 w-4 mr-2" />
           New Campaign
         </Button>
       </div>
       
-      <div className="flex items-center space-x-2">
-        <div className="relative flex-1">
+      <div className="flex items-center w-full">
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Search campaigns..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 w-full"
           />
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Campaigns</CardTitle>
-          <CardDescription>
-            Manage your campaign listings and influencer opportunities
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Min. Followers</TableHead>
-                  <TableHead>City</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCampaigns.length > 0 ? (
-                  filteredCampaigns.map((campaign) => (
-                    <TableRow key={campaign.id}>
-                      <TableCell className="font-medium">{campaign.title}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {campaign.categories.slice(0, 2).map(category => (
-                            <Badge key={category} variant="outline">{category}</Badge>
-                          ))}
-                          {campaign.categories.length > 2 && (
-                            <Badge variant="outline">+{campaign.categories.length - 2}</Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>{campaign.minFollowers.toLocaleString()}</TableCell>
-                      <TableCell>{campaign.city || '-'}</TableCell>
-                      <TableCell>{format(new Date(campaign.createdAt), 'MMM d, yyyy')}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            campaign.status === 'active' ? 'default' : 
-                            campaign.status === 'completed' ? 'secondary' : 'outline'
-                          }
-                        >
-                          {campaign.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button asChild variant="ghost" size="icon">
-                            <Link to={`/admin/campaign/${campaign.id}`}>
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => setEditCampaign(campaign.id)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => setDeleteCampaignId(campaign.id)}
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      No campaigns found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Dialogs */}
-      <NewCampaignDialog 
-        open={isNewCampaignOpen} 
-        onOpenChange={setIsNewCampaignOpen} 
-      />
-      
-      {editCampaign && (
-        <EditCampaignDialog 
-          open={!!editCampaign} 
-          onOpenChange={() => setEditCampaign(null)}
-          campaignId={editCampaign}
-        />
+      {filteredCampaigns.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredCampaigns.map((campaign) => (
+            <Card key={campaign.id} className="flex flex-col h-full">
+              <CardHeader>
+                <CardTitle className="line-clamp-1">{campaign.title}</CardTitle>
+                <CardDescription className="line-clamp-2">{campaign.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex-grow">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {campaign.categories.slice(0, 3).map(category => (
+                      <Badge key={category} variant="outline">{category}</Badge>
+                    ))}
+                    {campaign.categories.length > 3 && (
+                      <Badge variant="outline">+{campaign.categories.length - 3}</Badge>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Min Followers</p>
+                      <p className="font-medium">{campaign.minFollowers.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">City</p>
+                      <p className="font-medium">{campaign.city || 'Any'}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Created</p>
+                      <p className="font-medium">{format(new Date(campaign.createdAt), 'MMM d, yyyy')}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Status</p>
+                      <Badge
+                        variant={
+                          campaign.status === 'active' ? 'default' : 
+                          campaign.status === 'completed' ? 'secondary' : 'outline'
+                        }
+                      >
+                        {campaign.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-end gap-2 pt-2 border-t">
+                <Button asChild variant="ghost" size="sm">
+                  <Link to={`/admin/campaign/${campaign.id}`}>
+                    <Eye className="h-4 w-4 mr-2" />
+                    View
+                  </Link>
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => window.location.href = `/admin/campaign/${campaign.id}/edit`}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setDeleteCampaignId(campaign.id)}
+                >
+                  <Trash className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="flex items-center justify-center h-32">
+            <p className="text-muted-foreground">No campaigns found</p>
+          </CardContent>
+        </Card>
       )}
-      
+
       {deleteCampaignId && (
-        <DeleteConfirmDialog
-          open={!!deleteCampaignId}
-          onOpenChange={() => setDeleteCampaignId(null)}
-          title="Delete Campaign"
-          description="Are you sure you want to delete this campaign? This action cannot be undone."
-          onConfirm={async () => {
-            await deleteCampaign(deleteCampaignId);
-            setDeleteCampaignId(null);
-          }}
-        />
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>Delete Campaign</CardTitle>
+              <CardDescription>Are you sure you want to delete this campaign? This action cannot be undone.</CardDescription>
+            </CardHeader>
+            <CardFooter className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setDeleteCampaignId(null)}>Cancel</Button>
+              <Button 
+                variant="destructive" 
+                onClick={async () => {
+                  await deleteCampaign(deleteCampaignId);
+                  setDeleteCampaignId(null);
+                }}
+              >
+                Delete
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       )}
     </div>
   );
