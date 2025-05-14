@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { User } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 export default function InfluencerInbox() {
   const { user } = useAuth();
@@ -16,8 +19,8 @@ export default function InfluencerInbox() {
   // Get conversation messages
   const conversationMessages = messages.filter(
     msg => 
-      (msg.senderId === user?.id && msg.receiverId === selectedContact) ||
-      (msg.senderId === selectedContact && msg.receiverId === user?.id)
+      (msg.senderId === user?.dbId && msg.receiverId === selectedContact) ||
+      (msg.senderId === selectedContact && msg.receiverId === user?.dbId)
   ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
   // Select admin as default if no conversation is selected and admin is in conversations
@@ -41,11 +44,62 @@ export default function InfluencerInbox() {
     }
   }, [conversationMessages]);
 
-  const handleSendMessage = () => {
+  // Setup real-time subscription for new messages
+  useEffect(() => {
+    if (!user?.dbId) return;
+
+    const channel = supabase
+      .channel('influencer-inbox-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `receiver_id=eq.${user.dbId}`
+        },
+        () => {
+          // When we receive a message, refresh messages
+          // We'll rely on DataContext to handle the data fetching
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.dbId]);
+
+  const handleSendMessage = async () => {
     if (!messageText.trim() || !selectedContact) return;
 
-    sendMessage(selectedContact, messageText);
-    setMessageText('');
+    try {
+      await sendMessage(selectedContact, messageText);
+      setMessageText('');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Format date safely
+  const formatMessageTime = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+      return date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (error) {
+      return '';
+    }
   };
 
   return (
@@ -113,7 +167,7 @@ export default function InfluencerInbox() {
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {conversationMessages.length > 0 ? (
                   conversationMessages.map((msg) => {
-                    const isOwnMessage = msg.senderId === user?.id;
+                    const isOwnMessage = msg.senderId === user?.dbId;
 
                     return (
                       <div
@@ -129,10 +183,7 @@ export default function InfluencerInbox() {
                         >
                           <p>{msg.content}</p>
                           <p className={`text-xs mt-1 ${isOwnMessage ? 'text-brand-100' : 'text-muted-foreground'}`}>
-                            {new Date(msg.createdAt).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                            {formatMessageTime(msg.createdAt)}
                           </p>
                         </div>
                       </div>

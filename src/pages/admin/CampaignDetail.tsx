@@ -12,6 +12,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import EligibleInfluencers from '@/components/campaigns/EligibleInfluencers';
 import CampaignApplications from '@/components/campaigns/CampaignApplications';
 import ApprovedInfluencers from '@/components/campaigns/ApprovedInfluencers';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function CampaignDetail() {
   const { campaignId } = useParams();
@@ -22,6 +23,7 @@ export default function CampaignDetail() {
   
   const [campaign, setCampaign] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('eligible');
   
   // Redirect if not admin
   useEffect(() => {
@@ -44,7 +46,14 @@ export default function CampaignDetail() {
     setLoading(false);
   }, [campaignId, campaigns, navigate]);
 
-  if (loading) return <div className="flex items-center justify-center h-48">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <Spinner />
+      </div>
+    );
+  }
+  
   if (!campaign) return null;
   
   // Get counts for tabs
@@ -103,7 +112,7 @@ export default function CampaignDetail() {
         </CardContent>
       </Card>
       
-      <Tabs defaultValue="eligible" className="w-full">
+      <Tabs defaultValue={activeTab} className="w-full" onValueChange={setActiveTab}>
         <div className="overflow-x-auto pb-2">
           <TabsList className="w-full sm:w-auto inline-flex">
             <TabsTrigger value="eligible" className="flex-1 sm:flex-initial whitespace-nowrap">

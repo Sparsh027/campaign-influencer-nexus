@@ -19,8 +19,8 @@ interface DataContextType {
   
   // Applications
   applications: Application[];
-  applyToCampaign: (campaignId: string) => Promise<void>;
-  updateApplicationStatus: (applicationId: string, status: 'approved' | 'rejected') => Promise<void>;
+  applyToCampaign: (campaignId: string, influencerId?: string, status?: 'pending' | 'approved' | 'rejected') => Promise<void>;
+  updateApplicationStatus: (applicationId: string, status: 'approved' | 'rejected' | 'pending') => Promise<void>;
   
   // Messages
   messages: Message[];
@@ -464,28 +464,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   
   // Apply to a campaign
-  const applyToCampaign = async (campaignId: string) => {
-    if (!user || user.role !== "influencer") {
-      throw new Error("Only influencers can apply to campaigns");
-    }
-    
+  const applyToCampaign = async (campaignId: string, influencerId?: string, status: 'pending' | 'approved' | 'rejected' = 'pending') => {
     try {
       const campaign = campaigns.find(c => c.id === campaignId);
       if (!campaign) {
         throw new Error("Campaign not found");
       }
       
+      // Determine which influencer ID to use - either the provided one or current user
+      let targetInfluencerId: string;
+      if (influencerId) {
+        targetInfluencerId = influencerId; // Use provided influencer ID (admin creating application)
+      } else if (user && user.role === "influencer") {
+        targetInfluencerId = user.dbId; // Use current user's ID (influencer applying)
+      } else {
+        throw new Error("Unable to determine influencer ID");
+      }
+      
       // Check if already applied
       const existingApplication = applications.find(
-        app => app.campaignId === campaignId && app.influencerId === user.dbId
+        app => app.campaignId === campaignId && app.influencerId === targetInfluencerId
       );
       
       if (existingApplication) {
-        throw new Error("You have already applied to this campaign");
+        throw new Error("Application already exists");
       }
       
-      // Check eligibility
-      if (!isInfluencerEligible(campaignId)) {
+      // For self-applications (not by admin), check eligibility
+      if (!influencerId && !isInfluencerEligible(campaignId)) {
         throw new Error("You don't meet the eligibility criteria for this campaign");
       }
       
@@ -493,8 +499,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('applications')
         .insert({
           campaign_id: campaignId,
-          influencer_id: user.dbId,
-          status: 'pending'
+          influencer_id: targetInfluencerId,
+          status: status
         })
         .select()
         .single();
@@ -513,40 +519,48 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setApplications(prev => [...prev, newApplication]);
         
-        // Create notification for admin
-        // Find admin ID
-        const { data: adminData, error: adminError } = await supabase
-          .from('admins')
-          .select('id')
-          .single();
+        // Create notification for admin if self-applied
+        if (!influencerId) {
+          // Find admin ID
+          const { data: adminData, error: adminError } = await supabase
+            .from('admins')
+            .select('id')
+            .single();
+            
+          if (!adminData) {
+            throw new Error("Admin not found");
+          }
           
-        if (!adminData) {
-          throw new Error("Admin not found");
+          await supabase
+            .from('notifications')
+            .insert({
+              type: 'new_application',
+              message: `${user?.name} applied to ${campaign.title}`,
+              target_type: 'admin',
+              target_id: adminData.id,
+              read: false
+            });
         }
         
-        await supabase
-          .from('notifications')
-          .insert({
-            type: 'new_application',
-            message: `${user.name} applied to ${campaign.title}`,
-            target_type: 'admin',
-            target_id: adminData.id,
-            read: false
-          });
-        
-        toast.success("Application submitted successfully");
+        if (!influencerId) {
+          // Only show toast for self-applications
+          toast.success("Application submitted successfully");
+        }
       }
     } catch (error: any) {
       console.error('Error applying to campaign:', error);
-      toast.error(error?.message || "Failed to apply to campaign");
+      if (!influencerId) {
+        // Only show error toast for self-applications
+        toast.error(error?.message || "Failed to apply to campaign");
+      }
       throw error;
     }
   };
   
   // Update application status
-  const updateApplicationStatus = async (applicationId: string, status: 'approved' | 'rejected') => {
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can update application status");
+  const updateApplicationStatus = async (applicationId: string, status: 'approved' | 'rejected' | 'pending') => {
+    if (!user) {
+      throw new Error("You must be logged in to update application status");
     }
     
     try {
@@ -579,11 +593,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             read: false
           });
       }
-      
-      toast.success(`Application ${status === 'approved' ? 'approved' : 'rejected'} successfully`);
     } catch (error) {
       console.error('Error updating application status:', error);
-      toast.error("Failed to update application status");
       throw error;
     }
   };
@@ -641,7 +652,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error("Failed to send message");
       throw error;
     }
   };

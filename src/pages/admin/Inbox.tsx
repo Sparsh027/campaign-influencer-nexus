@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { User } from 'lucide-react';
+import { User, MessageSquare } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 export default function AdminInbox() {
   const { user } = useAuth();
@@ -41,11 +43,62 @@ export default function AdminInbox() {
     }
   }, [conversationMessages]);
 
-  const handleSendMessage = () => {
+  // Setup real-time subscription for new messages
+  useEffect(() => {
+    if (!user?.dbId) return;
+
+    const channel = supabase
+      .channel('admin-inbox-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `receiver_id=eq.${user.dbId}`
+        },
+        () => {
+          // When we receive a message, refresh messages
+          // We'll rely on DataContext to handle the data fetching
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.dbId]);
+
+  const handleSendMessage = async () => {
     if (!messageText.trim() || !selectedContact) return;
 
-    sendMessage(selectedContact, messageText);
-    setMessageText('');
+    try {
+      await sendMessage(selectedContact, messageText);
+      setMessageText('');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Format date safely
+  const formatMessageTime = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return '';
+      }
+      return date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (error) {
+      return '';
+    }
   };
 
   if (loading) {
@@ -121,7 +174,7 @@ export default function AdminInbox() {
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {conversationMessages.length > 0 ? (
                   conversationMessages.map((msg) => {
-                    const isOwnMessage = msg.senderId === user?.id;
+                    const isOwnMessage = msg.senderId === user?.dbId;
 
                     return (
                       <div
@@ -137,10 +190,7 @@ export default function AdminInbox() {
                         >
                           <p>{msg.content}</p>
                           <p className={`text-xs mt-1 ${isOwnMessage ? 'text-brand-100' : 'text-muted-foreground'}`}>
-                            {new Date(msg.createdAt).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                            {formatMessageTime(msg.createdAt)}
                           </p>
                         </div>
                       </div>

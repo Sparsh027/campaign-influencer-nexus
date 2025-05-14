@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useData } from '@/contexts/DataContext';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Check, X, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { InfluencerUser } from '@/types/auth';
+import { useNavigate } from 'react-router-dom';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from '@/hooks/use-toast';
 
 interface CampaignApplicationsProps {
   campaignId: string;
@@ -15,6 +18,9 @@ interface CampaignApplicationsProps {
 
 export default function CampaignApplications({ campaignId }: CampaignApplicationsProps) {
   const { applications, influencers, updateApplicationStatus } = useData();
+  const navigate = useNavigate();
+  
+  const [updatingApplication, setUpdatingApplication] = useState<string | null>(null);
   
   const pendingApplications = applications.filter(app => 
     app.campaignId === campaignId && app.status === 'pending'
@@ -36,9 +42,44 @@ export default function CampaignApplications({ campaignId }: CampaignApplication
     );
   }
   
-  // Handle application approval/rejection
-  const handleUpdateStatus = (applicationId: string, status: 'approved' | 'rejected') => {
-    updateApplicationStatus(applicationId, status);
+  // Handle application status update
+  const handleUpdateStatus = async (applicationId: string, status: 'approved' | 'rejected') => {
+    try {
+      setUpdatingApplication(applicationId);
+      await updateApplicationStatus(applicationId, status);
+      toast({
+        title: "Success",
+        description: `Application ${status === 'approved' ? 'approved' : 'rejected'} successfully`,
+      });
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update application status",
+        variant: "destructive"
+      });
+    } finally {
+      setUpdatingApplication(null);
+    }
+  };
+  
+  // Handle message
+  const handleMessage = (influencerId: string) => {
+    navigate('/admin/inbox');
+    // Ideally we'd navigate to the specific conversation
+  };
+  
+  // Format date safely
+  const safeFormat = (dateString: string, formatStr: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Invalid date';
+      }
+      return format(date, formatStr);
+    } catch (error) {
+      return 'Invalid date';
+    }
   };
   
   return (
@@ -72,28 +113,30 @@ export default function CampaignApplications({ campaignId }: CampaignApplication
                       </div>
                     </TableCell>
                     <TableCell>
-                      {format(new Date(application.createdAt), 'MMM d, yyyy')}
+                      {safeFormat(application.createdAt, 'MMM d, yyyy')}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleUpdateStatus(application.id, 'approved')}
+                        <Select
+                          disabled={updatingApplication === application.id}
+                          onValueChange={(value) => handleUpdateStatus(application.id, value as 'approved' | 'rejected')}
+                          defaultValue={application.status}
                         >
-                          <Check className="h-4 w-4 mr-1" />
-                          Approve
-                        </Button>
+                          <SelectTrigger className="w-[110px]">
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="approved">Approve</SelectItem>
+                            <SelectItem value="rejected">Reject</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleUpdateStatus(application.id, 'rejected')}
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleMessage(application.influencerId)}
                         >
-                          <X className="h-4 w-4 mr-1" />
-                          Reject
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <MessageSquare className="h-4 w-4 mr-1" />
+                          <MessageSquare className="h-4 w-4 mr-2" />
                           Message
                         </Button>
                       </div>
