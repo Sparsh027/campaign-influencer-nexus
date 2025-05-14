@@ -6,7 +6,15 @@ import { useData } from '@/contexts/DataContext';
 import { BarChart, Users, LayoutDashboard, MessageSquare, Bell, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
+
+// Helper function to safely format dates
+const safeFormat = (dateString: string | undefined, formatString: string): string => {
+  if (!dateString) return 'Unknown date';
+  
+  const date = new Date(dateString);
+  return isValid(date) ? format(date, formatString) : 'Invalid date';
+};
 
 export default function AdminDashboard() {
   const { campaigns, influencers, applications, notifications } = useData();
@@ -14,17 +22,30 @@ export default function AdminDashboard() {
   const activeCampaigns = campaigns.filter(c => c.status === 'active');
   const recentNotifications = [...notifications]
     .filter(n => n.targetType === 'admin')
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .sort((a, b) => {
+      const dateA = new Date(a.createdAt);
+      const dateB = new Date(b.createdAt);
+      return isValid(dateB) && isValid(dateA) ? dateB.getTime() - dateA.getTime() : 0;
+    })
     .slice(0, 5);
 
   // Get recent influencer signups
   const recentInfluencers = [...influencers]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .filter(inf => inf.createdAt) // Filter out influencers without createdAt
+    .sort((a, b) => {
+      const dateA = new Date(a.createdAt);
+      const dateB = new Date(b.createdAt);
+      return isValid(dateB) && isValid(dateA) ? dateB.getTime() - dateA.getTime() : 0;
+    })
     .slice(0, 3);
 
   // Get recent applications
   const recentApplications = applications
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .sort((a, b) => {
+      const dateA = new Date(a.createdAt);
+      const dateB = new Date(b.createdAt);
+      return isValid(dateB) && isValid(dateA) ? dateB.getTime() - dateA.getTime() : 0;
+    })
     .slice(0, 5);
 
   return (
@@ -116,7 +137,7 @@ export default function AdminDashboard() {
                       <p className="text-sm font-medium">{influencer.name}</p>
                       <div className="flex gap-2 items-center">
                         <p className="text-xs text-muted-foreground">
-                          {format(new Date(influencer.createdAt), 'MMM d, yyyy')}
+                          {influencer.createdAt && safeFormat(influencer.createdAt, 'MMM d, yyyy')}
                         </p>
                         <Badge variant="outline" className="text-xs">New</Badge>
                       </div>
@@ -140,7 +161,7 @@ export default function AdminDashboard() {
                       <div className="flex gap-2 items-center">
                         <Badge variant="default" className="text-xs">Active</Badge>
                         <p className="text-xs text-muted-foreground">
-                          Created {format(new Date(campaign.createdAt), 'MMM d, yyyy')}
+                          Created {safeFormat(campaign.createdAt, 'MMM d, yyyy')}
                         </p>
                       </div>
                     </div>
@@ -161,13 +182,7 @@ export default function AdminDashboard() {
                       <div className="space-y-1">
                         <p className="text-sm">{notification.message}</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(notification.createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                          {safeFormat(notification.createdAt, 'MMM d, yyyy, h:mm a')}
                         </p>
                       </div>
                     </div>
