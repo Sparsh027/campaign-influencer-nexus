@@ -5,16 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, DollarSign } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { Campaign } from '@/types/data';
 import { toast } from 'sonner';
+import { useInfluencerBudget } from '@/hooks/useInfluencerBudget';
+import { useNavigate } from 'react-router-dom';
 
 export default function InfluencerCampaigns() {
   const { campaigns, getEligibleCampaigns, isInfluencerEligible, hasApplied, applyToCampaign } = useData();
+  const { getCampaignBudget, isNegotiationEnabled, loading: budgetLoading } = useInfluencerBudget();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [isApplying, setIsApplying] = useState(false);
+  const [isNegotiating, setIsNegotiating] = useState(false);
+  const navigate = useNavigate();
 
   const eligibleCampaigns = getEligibleCampaigns();
 
@@ -30,14 +35,24 @@ export default function InfluencerCampaigns() {
   const handleApply = async (campaignId: string) => {
     setIsApplying(true);
     try {
-      await applyToCampaign(campaignId);
+      const budget = getCampaignBudget(campaignId);
+      await applyToCampaign(campaignId, undefined, 'pending', budget, false);
       setSelectedCampaign(null);
+      toast.success("Application submitted successfully!");
     } catch (error) {
       console.error('Apply error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to apply');
     } finally {
       setIsApplying(false);
     }
+  };
+
+  const handleNegotiate = (campaignId: string) => {
+    setIsNegotiating(true);
+    // Navigate to inbox where they can discuss with admin
+    navigate('/influencer/inbox');
+    toast.info("Start your negotiation by sending a message to the admin");
+    setIsNegotiating(false);
   };
 
   return (
@@ -77,6 +92,8 @@ export default function InfluencerCampaigns() {
           filteredCampaigns.map((campaign) => {
             const isEligible = isInfluencerEligible(campaign.id);
             const userHasApplied = hasApplied(campaign.id);
+            const campaignBudget = getCampaignBudget(campaign.id);
+            const canNegotiate = isNegotiationEnabled(campaign.id);
             
             // If searching for eligible campaigns only
             if (searchTerm === 'eligible' && !isEligible) {
@@ -104,7 +121,7 @@ export default function InfluencerCampaigns() {
                 <CardContent>
                   <p className="text-sm mb-4">{campaign.description}</p>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Min. Followers</p>
                       <p className="font-medium">{campaign.minFollowers.toLocaleString()}</p>
@@ -116,6 +133,17 @@ export default function InfluencerCampaigns() {
                         <p className="font-medium">{campaign.city}</p>
                       </div>
                     )}
+                    
+                    <div>
+                      <p className="text-muted-foreground">Budget</p>
+                      <p className="font-medium text-brand-600">
+                        {!budgetLoading ? (
+                          campaignBudget > 0 ? `₹${campaignBudget.toLocaleString()}` : 'Contact for details'
+                        ) : (
+                          'Loading...'
+                        )}
+                      </p>
+                    </div>
                     
                     <div className="col-span-2 md:col-span-1">
                       <p className="text-muted-foreground mb-1">Categories</p>
@@ -129,7 +157,17 @@ export default function InfluencerCampaigns() {
                     </div>
                   </div>
                   
-                  <div className="mt-6 flex justify-end">
+                  <div className="mt-6 flex justify-end gap-2">
+                    {isEligible && !userHasApplied && canNegotiate && (
+                      <Button
+                        variant="outline"
+                        onClick={() => handleNegotiate(campaign.id)}
+                        disabled={isNegotiating}
+                      >
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        {isNegotiating ? "Processing..." : "Negotiate"}
+                      </Button>
+                    )}
                     <Button 
                       variant={userHasApplied ? "outline" : "default"}
                       onClick={() => setSelectedCampaign(campaign)} 
@@ -182,6 +220,13 @@ export default function InfluencerCampaigns() {
                     <span>{selectedCampaign.city}</span>
                   </div>
                 )}
+                
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Budget:</span>
+                  <span className="font-semibold text-brand-600">
+                    ₹{getCampaignBudget(selectedCampaign.id).toLocaleString()}
+                  </span>
+                </div>
                 
                 <div>
                   <p className="text-muted-foreground mb-1">Categories:</p>

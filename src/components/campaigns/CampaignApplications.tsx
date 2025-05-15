@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Check, X, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { InfluencerUser } from '@/types/auth';
 import { useNavigate } from 'react-router-dom';
@@ -92,8 +92,9 @@ export default function CampaignApplications({ campaignId }: CampaignApplication
                 <TableHead>Influencer</TableHead>
                 <TableHead>Instagram</TableHead>
                 <TableHead>Followers</TableHead>
-                <TableHead>Categories</TableHead>
+                <TableHead>Budget</TableHead>
                 <TableHead>Applied On</TableHead>
+                <TableHead>Categories</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -106,14 +107,23 @@ export default function CampaignApplications({ campaignId }: CampaignApplication
                     <TableCell>{influencer?.instagram || '-'}</TableCell>
                     <TableCell>{influencer?.followerCount?.toLocaleString() || '-'}</TableCell>
                     <TableCell>
+                      {application.budgetAppliedFor 
+                        ? `₹${application.budgetAppliedFor.toLocaleString()}`
+                        : '-'
+                      }
+                      {application.isNegotiated && (
+                        <Badge variant="outline" className="ml-2">Negotiated</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {safeFormat(application.createdAt, 'MMM d, yyyy')}
+                    </TableCell>
+                    <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {influencer?.categories?.map((category) => (
                           <Badge key={category} variant="outline">{category}</Badge>
                         )) || '-'}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {safeFormat(application.createdAt, 'MMM d, yyyy')}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">

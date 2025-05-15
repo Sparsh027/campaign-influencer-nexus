@@ -1,616 +1,327 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { Campaign, Application, Message, Notification } from "../types/data";
-import { User, InfluencerUser } from "../types/auth";
-import { useAuth } from "./AuthContext";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Campaign, Application, Message, Notification } from '@/types/data';
+import { useAuth } from './AuthContext';
+import { AdminUser, InfluencerUser, User } from '@/types/auth';
 
 interface DataContextType {
-  // Campaigns
   campaigns: Campaign[];
-  createCampaign: (campaign: Omit<Campaign, "id" | "createdAt">) => Promise<void>;
-  updateCampaign: (id: string, data: Partial<Campaign>) => Promise<void>;
-  deleteCampaign: (id: string) => Promise<void>;
-  
-  // Influencers
-  influencers: InfluencerUser[];
-  blockInfluencer: (id: string) => Promise<void>;
-  deleteInfluencer: (id: string) => Promise<void>;
-  
-  // Applications
   applications: Application[];
-  applyToCampaign: (campaignId: string, influencerId?: string, status?: 'pending' | 'approved' | 'rejected') => Promise<void>;
-  updateApplicationStatus: (applicationId: string, status: 'approved' | 'rejected' | 'pending') => Promise<void>;
-  
-  // Messages
+  influencers: InfluencerUser[];
   messages: Message[];
-  conversations: { id: string; name: string; unread: number }[];
-  sendMessage: (receiverId: string, content: string) => Promise<void>;
-  fetchMessages: () => Promise<void>;
-  
-  // Notifications
   notifications: Notification[];
-  markNotificationAsRead: (id: string) => void;
-  
-  // Filtering
+  adminId: string | null;
+  fetchCampaigns: () => Promise<void>;
+  fetchApplications: () => Promise<void>;
+  fetchInfluencers: () => Promise<void>;
+  fetchMessages: () => Promise<void>;
+  fetchNotifications: () => Promise<void>;
+  createCampaign: (campaign: Omit<Campaign, 'id' | 'createdAt'>) => Promise<void>;
+  updateCampaign: (campaignId: string, updates: Partial<Campaign>) => Promise<void>;
+  deleteCampaign: (campaignId: string) => Promise<void>;
+  applyToCampaign: (
+    campaignId: string,
+    influencerId?: string,
+    status?: 'pending' | 'approved' | 'rejected',
+    budgetAppliedFor?: number,
+    isNegotiated?: boolean
+  ) => Promise<void>;
+  updateApplicationStatus: (applicationId: string, status: 'approved' | 'rejected') => Promise<void>;
+  sendMessage: (receiverId: string, content: string) => Promise<void>;
+  createNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => Promise<void>;
+  markNotificationAsRead: (notificationId: string) => Promise<void>;
   getEligibleCampaigns: () => Campaign[];
-  getEligibleInfluencers: (campaignId: string) => InfluencerUser[];
-  isInfluencerEligible: (campaignId: string, influencerId?: string) => boolean;
+  isInfluencerEligible: (campaignId: string) => boolean;
   hasApplied: (campaignId: string, influencerId?: string) => boolean;
+  getEligibleInfluencers: (campaignId: string) => InfluencerUser[];
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
-
-  const [influencers, setInfluencers] = useState<InfluencerUser[]>([]);
+export function DataProvider({ children }: { children: React.ReactNode }) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [influencers, setInfluencers] = useState<InfluencerUser[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [adminId, setAdminId] = useState<string | null>(null);
+  const { user } = useAuth();
 
-  // Fetch data when user changes
+  // Fetch admin ID on load
   useEffect(() => {
-    if (user) {
-      fetchCampaigns();
-      fetchInfluencers();
-      fetchApplications();
-      fetchMessages();
-      fetchNotifications();
-    }
-  }, [user]);
+    const fetchAdminId = async () => {
+      if (user?.role === 'admin' && user.id) {
+        const { data, error } = await supabase.functions.invoke('get-admin-id', {
+          body: { user_id: user.id },
+        });
 
-  // Fetch campaigns from the database
-  const fetchCampaigns = async () => {
+        if (error) {
+          console.error('Error fetching admin ID:', error);
+        } else if (data) {
+          setAdminId(data);
+        }
+      }
+    };
+
+    fetchAdminId();
+  }, [user?.role, user?.id]);
+
+  // Fetch campaigns
+  const fetchCampaigns = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('campaigns')
-        .select('*');
-        
+        .select('*')
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
-      
-      if (data) {
-        const formattedCampaigns: Campaign[] = data.map(c => ({
-          id: c.id,
-          title: c.title,
-          description: c.description,
-          minFollowers: c.min_followers,
-          categories: c.categories || [],
-          city: c.city || '',
-          createdAt: c.created_at,
-          status: c.status
-        }));
-        
-        setCampaigns(formattedCampaigns);
-      }
+
+      setCampaigns(data);
     } catch (error) {
       console.error('Error fetching campaigns:', error);
     }
-  };
+  }, []);
 
-  // Fetch influencers from the database
-  const fetchInfluencers = async () => {
+  // Fetch applications
+  const fetchApplications = useCallback(async () => {
     try {
-      // Only fetch if user is admin
-      if (user?.role !== 'admin') {
-        return;
-      }
-      
       const { data, error } = await supabase
-        .from('influencers')
-        .select('*');
-        
-      if (error) throw error;
-      
-      if (data) {
-        const formattedInfluencers: InfluencerUser[] = data.map(i => ({
-          id: i.auth_id,
-          dbId: i.id,
-          email: i.email,
-          name: i.name,
-          role: "influencer",
-          instagram: i.instagram || undefined,
-          followerCount: i.follower_count || undefined,
-          phone: i.phone || undefined,
-          categories: i.categories || undefined,
-          city: i.city || undefined,
-          profileCompleted: i.profile_completed,
-          createdAt: i.created_at
-        }));
-        
-        setInfluencers(formattedInfluencers);
-      }
-    } catch (error) {
-      console.error('Error fetching influencers:', error);
-    }
-  };
+        .from('applications')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  // Fetch applications from the database
-  const fetchApplications = async () => {
-    try {
-      let query = supabase.from('applications').select(`
-        *,
-        campaigns(*)
-      `);
-      
-      // Filter by user role
-      if (user?.role === 'influencer') {
-        query = query.eq('influencer_id', user.dbId);
-      }
-      
-      const { data, error } = await query;
-      
       if (error) throw error;
-      
-      if (data) {
-        const formattedApplications: Application[] = data.map(a => {
-          const campaign = a.campaigns ? {
-            id: a.campaigns.id,
-            title: a.campaigns.title,
-            description: a.campaigns.description,
-            minFollowers: a.campaigns.min_followers,
-            categories: a.campaigns.categories || [],
-            city: a.campaigns.city || '',
-            createdAt: a.campaigns.created_at,
-            status: a.campaigns.status
-          } : undefined;
-          
-          return {
-            id: a.id,
-            campaignId: a.campaign_id,
-            influencerId: a.influencer_id,
-            status: a.status,
-            createdAt: a.created_at,
-            campaign
-          };
-        });
-        
-        setApplications(formattedApplications);
-      }
+
+      setApplications(data);
     } catch (error) {
       console.error('Error fetching applications:', error);
     }
-  };
+  }, []);
 
-  // Fetch messages from the database
-  const fetchMessages = async () => {
+  // Fetch influencers
+  const fetchInfluencers = useCallback(async () => {
     try {
-      if (!user) return;
-      
-      let query = supabase.from('messages').select('*');
-      
-      // Filter by user role
-      if (user.role === 'admin') {
-        query = query.or(`sender_type.eq.admin,receiver_type.eq.admin`);
-      } else {
-        query = query.or(`and(sender_type.eq.influencer,sender_id.eq.${user.dbId}),and(receiver_type.eq.influencer,receiver_id.eq.${user.dbId})`);
-      }
-      
-      const { data, error } = await query;
-      
+      const { data, error } = await supabase
+        .from('influencers')
+        .select('*')
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
-      
-      if (data) {
-        const formattedMessages: Message[] = data.map(m => ({
-          id: m.id,
-          senderType: m.sender_type,
-          senderId: m.sender_id,
-          receiverType: m.receiver_type,
-          receiverId: m.receiver_id,
-          content: m.content,
-          read: m.read,
-          createdAt: m.created_at
-        }));
-        
-        setMessages(formattedMessages);
-      }
+
+      setInfluencers(data);
+    } catch (error) {
+      console.error('Error fetching influencers:', error);
+    }
+  }, []);
+
+  // Fetch messages
+  const fetchMessages = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setMessages(data);
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
-  };
+  }, []);
 
-  // Fetch notifications from the database
-  const fetchNotifications = async () => {
+  // Fetch notifications
+  const fetchNotifications = useCallback(async () => {
     try {
-      if (!user) return;
-      
-      let query = supabase.from('notifications').select('*');
-      
-      // Filter by user role
-      if (user.role === 'admin') {
-        query = query.eq('target_type', 'admin');
-      } else {
-        query = query.eq('target_id', user.dbId).eq('target_type', 'influencer');
-      }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
-      
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false });
+
       if (error) throw error;
-      
-      if (data) {
-        const formattedNotifications: Notification[] = data.map(n => ({
-          id: n.id,
-          type: n.type as any,
-          message: n.message,
-          targetType: n.target_type,
-          targetId: n.target_id,
-          userId: n.target_id, // Add userId for backward compatibility
-          read: n.read,
-          createdAt: n.created_at
-        }));
-        
-        setNotifications(formattedNotifications);
-      }
+
+      setNotifications(data);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     }
-  };
+  }, []);
 
-  // Get conversations for the current user
-  const conversations = React.useMemo(() => {
-    if (!user) return [];
-
-    // Get unique conversation partners
-    const conversationPartners = new Map<string, { name: string; unread: number }>();
-    
-    messages.forEach(msg => {
-      if (msg.senderType === user.role && msg.senderId === user.dbId) {
-        // Outgoing message
-        const partnerId = msg.receiverId;
-        const partnerType = msg.receiverType;
-        
-        if (!conversationPartners.has(partnerId)) {
-          // Find partner name
-          let partnerName = "Unknown";
-          
-          if (partnerType === "influencer") {
-            const influencer = influencers.find(i => i.dbId === partnerId);
-            if (influencer) {
-              partnerName = influencer.name;
-            }
-          } else {
-            partnerName = "Admin"; // For now, we only have one admin
-          }
-          
-          conversationPartners.set(partnerId, { 
-            name: partnerName,
-            unread: 0 
-          });
-        }
-      } else if (msg.receiverType === user.role && msg.receiverId === user.dbId) {
-        // Incoming message
-        const partnerId = msg.senderId;
-        const partnerType = msg.senderType;
-        
-        if (!conversationPartners.has(partnerId)) {
-          // Find partner name
-          let partnerName = "Unknown";
-          
-          if (partnerType === "influencer") {
-            const influencer = influencers.find(i => i.dbId === partnerId);
-            if (influencer) {
-              partnerName = influencer.name;
-            }
-          } else {
-            partnerName = "Admin"; // For now, we only have one admin
-          }
-          
-          conversationPartners.set(partnerId, { 
-            name: partnerName,
-            unread: msg.read ? 0 : 1
-          });
-        } else if (!msg.read) {
-          const current = conversationPartners.get(partnerId);
-          if (current) {
-            conversationPartners.set(partnerId, {
-              ...current,
-              unread: current.unread + 1
-            });
-          }
-        }
-      }
-    });
-    
-    return Array.from(conversationPartners.entries()).map(([id, data]) => ({
-      id,
-      name: data.name,
-      unread: data.unread
-    }));
-  }, [user, messages, influencers]);
-
-  // Create a new campaign
-  const createCampaign = async (campaignData: Omit<Campaign, "id" | "createdAt">) => {
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can create campaigns");
-    }
-    
+  // Create campaign
+  const createCampaign = async (campaign: Omit<Campaign, 'id' | 'createdAt'>) => {
     try {
       const { data, error } = await supabase
         .from('campaigns')
-        .insert({
-          title: campaignData.title,
-          description: campaignData.description,
-          min_followers: campaignData.minFollowers,
-          categories: campaignData.categories,
-          city: campaignData.city,
-          status: campaignData.status
-        })
+        .insert([campaign])
         .select()
         .single();
-        
+
       if (error) throw error;
-      
-      if (data) {
-        const newCampaign: Campaign = {
-          id: data.id,
-          title: data.title,
-          description: data.description,
-          minFollowers: data.min_followers,
-          categories: data.categories || [],
-          city: data.city || '',
-          createdAt: data.created_at,
-          status: data.status
-        };
-        
-        setCampaigns(prev => [...prev, newCampaign]);
-        
-        // TODO: Create notifications for eligible influencers
-        
-        toast.success("Campaign created successfully");
-      }
+
+      setCampaigns(prev => [...prev, data]);
     } catch (error) {
       console.error('Error creating campaign:', error);
-      toast.error("Failed to create campaign");
       throw error;
     }
   };
-  
-  // Update a campaign
-  const updateCampaign = async (id: string, data: Partial<Campaign>) => {
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can update campaigns");
-    }
-    
+
+  // Update campaign
+  const updateCampaign = async (campaignId: string, updates: Partial<Campaign>) => {
     try {
-      const updateData = {
-        title: data.title,
-        description: data.description,
-        min_followers: data.minFollowers,
-        categories: data.categories,
-        city: data.city,
-        status: data.status
-      };
-      
       const { error } = await supabase
         .from('campaigns')
-        .update(updateData)
-        .eq('id', id);
-        
+        .update(updates)
+        .eq('id', campaignId);
+
       if (error) throw error;
-      
-      setCampaigns(prev => prev.map(campaign => 
-        campaign.id === id ? { ...campaign, ...data } : campaign
-      ));
-      
-      toast.success("Campaign updated successfully");
+
+      // Update local state
+      setCampaigns(prev =>
+        prev.map(campaign =>
+          campaign.id === campaignId ? { ...campaign, ...updates } : campaign
+        )
+      );
     } catch (error) {
       console.error('Error updating campaign:', error);
-      toast.error("Failed to update campaign");
       throw error;
     }
   };
-  
-  // Delete a campaign
-  const deleteCampaign = async (id: string) => {
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can delete campaigns");
-    }
-    
+
+  // Delete campaign
+  const deleteCampaign = async (campaignId: string) => {
     try {
       const { error } = await supabase
         .from('campaigns')
         .delete()
-        .eq('id', id);
-        
+        .eq('id', campaignId);
+
       if (error) throw error;
-      
-      setCampaigns(prev => prev.filter(campaign => campaign.id !== id));
-      // Applications are automatically deleted due to ON DELETE CASCADE
-      setApplications(prev => prev.filter(app => app.campaignId !== id));
-      
-      toast.success("Campaign deleted successfully");
+
+      // Update local state
+      setCampaigns(prev => prev.filter(campaign => campaign.id !== campaignId));
     } catch (error) {
       console.error('Error deleting campaign:', error);
-      toast.error("Failed to delete campaign");
       throw error;
     }
   };
-  
-  // Block an influencer
-  const blockInfluencer = async (id: string) => {
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can block influencers");
-    }
-    
-    toast.success("Influencer blocked successfully");
-    // TODO: Implement blocking functionality when we have a blocked flag in the database
-  };
-  
-  // Delete an influencer
-  const deleteInfluencer = async (id: string) => {
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can delete influencers");
-    }
-    
+
+  // Updated applyToCampaign function to handle budget details
+  const applyToCampaign = async (
+    campaignId: string,
+    influencerId?: string, 
+    status: 'pending' | 'approved' | 'rejected' = 'pending',
+    budgetAppliedFor?: number,
+    isNegotiated: boolean = false
+  ) => {
     try {
-      const influencer = influencers.find(i => i.dbId === id);
-      if (!influencer) throw new Error("Influencer not found");
+      // Use current user's influencer ID if not specified
+      const applicantId = influencerId || user?.dbId;
       
-      // Delete the supabase auth user
-      // Note: This will cascade delete the influencer record due to our database structure
-      const { error } = await supabase.auth.admin.deleteUser(influencer.id);
-      
-      if (error) throw error;
-      
-      setInfluencers(prev => prev.filter(i => i.dbId !== id));
-      setApplications(prev => prev.filter(app => app.influencerId !== id));
-      
-      toast.success("Influencer removed successfully");
-    } catch (error) {
-      console.error('Error deleting influencer:', error);
-      toast.error("Failed to delete influencer");
-      throw error;
-    }
-  };
-  
-  // Apply to a campaign
-  const applyToCampaign = async (campaignId: string, influencerId?: string, status: 'pending' | 'approved' | 'rejected' = 'pending') => {
-    try {
-      const campaign = campaigns.find(c => c.id === campaignId);
-      if (!campaign) {
-        throw new Error("Campaign not found");
+      if (!applicantId) {
+        throw new Error('No influencer ID available to apply with');
       }
-      
-      // Determine which influencer ID to use - either the provided one or current user
-      let targetInfluencerId: string;
-      if (influencerId) {
-        targetInfluencerId = influencerId; // Use provided influencer ID (admin creating application)
-      } else if (user && user.role === "influencer") {
-        targetInfluencerId = user.dbId; // Use current user's ID (influencer applying)
-      } else {
-        throw new Error("Unable to determine influencer ID");
-      }
-      
+
       // Check if already applied
-      const existingApplication = applications.find(
-        app => app.campaignId === campaignId && app.influencerId === targetInfluencerId
+      const existingApp = applications.find(
+        app => app.campaignId === campaignId && app.influencerId === applicantId
       );
-      
-      if (existingApplication) {
-        throw new Error("Application already exists");
+
+      if (existingApp) {
+        throw new Error('You have already applied to this campaign');
       }
-      
-      // For self-applications (not by admin), check eligibility
-      if (!influencerId && !isInfluencerEligible(campaignId)) {
-        throw new Error("You don't meet the eligibility criteria for this campaign");
-      }
-      
+
+      // Submit the application
       const { data, error } = await supabase
         .from('applications')
         .insert({
           campaign_id: campaignId,
-          influencer_id: targetInfluencerId,
-          status: status
+          influencer_id: applicantId,
+          status: status,
+          budget_applied_for: budgetAppliedFor,
+          is_negotiated: isNegotiated
         })
         .select()
         .single();
-        
+
       if (error) throw error;
-      
-      if (data) {
-        const newApplication: Application = {
-          id: data.id,
-          campaignId: data.campaign_id,
-          influencerId: data.influencer_id,
-          status: data.status,
-          createdAt: data.created_at,
-          campaign
-        };
-        
-        setApplications(prev => [...prev, newApplication]);
-        
-        // Create notification for admin if self-applied
-        if (!influencerId) {
-          // Find admin ID
-          const { data: adminData, error: adminError } = await supabase
-            .from('admins')
-            .select('id')
-            .single();
-            
-          if (!adminData) {
-            throw new Error("Admin not found");
-          }
-          
-          await supabase
-            .from('notifications')
-            .insert({
-              type: 'new_application',
-              message: `${user?.name} applied to ${campaign.title}`,
-              target_type: 'admin',
-              target_id: adminData.id,
-              read: false
-            });
-        }
-        
-        if (!influencerId) {
-          // Only show toast for self-applications
-          toast.success("Application submitted successfully");
-        }
-      }
-    } catch (error: any) {
+
+      // Update local state
+      const newApplication = {
+        id: data.id,
+        campaignId: data.campaign_id,
+        influencerId: data.influencer_id,
+        status: data.status,
+        createdAt: data.created_at,
+        budgetAppliedFor: data.budget_applied_for,
+        isNegotiated: data.is_negotiated || false,
+        finalOfferAmount: data.final_offer_amount
+      };
+
+      setApplications(prev => [...prev, newApplication]);
+
+      // Create notification for admin
+      await createNotification({
+        type: 'new_application',
+        message: `New application for "${campaigns.find(c => c.id === campaignId)?.title}" campaign`,
+        targetType: 'admin',
+        targetId: adminId || '', // If adminId is not loaded yet, it will be empty
+      });
+
+    } catch (error) {
       console.error('Error applying to campaign:', error);
-      if (!influencerId) {
-        // Only show error toast for self-applications
-        toast.error(error?.message || "Failed to apply to campaign");
-      }
       throw error;
     }
   };
-  
+
   // Update application status
-  const updateApplicationStatus = async (applicationId: string, status: 'approved' | 'rejected' | 'pending') => {
-    if (!user) {
-      throw new Error("You must be logged in to update application status");
-    }
-    
+  const updateApplicationStatus = async (applicationId: string, status: 'approved' | 'rejected') => {
     try {
       const { error } = await supabase
         .from('applications')
         .update({ status })
         .eq('id', applicationId);
-        
+
       if (error) throw error;
-      
-      setApplications(prev => prev.map(app => 
-        app.id === applicationId ? { ...app, status } : app
-      ));
-      
-      // Get the application to send notification
+
+      // Update local state
+      setApplications(prev => 
+        prev.map(app => 
+          app.id === applicationId 
+            ? { ...app, status } 
+            : app
+        )
+      );
+
+      // Find the application and influencer to notify
       const application = applications.find(app => app.id === applicationId);
+
       if (application) {
+        // Get the campaign name
         const campaign = campaigns.find(c => c.id === application.campaignId);
-        
-        // Create notification for influencer
-        await supabase
-          .from('notifications')
-          .insert({
-            type: status === 'approved' ? 'application_approved' : 'application_rejected',
-            message: status === 'approved' 
-              ? `Your application for ${campaign?.title || 'a campaign'} has been approved!` 
-              : `Your application for ${campaign?.title || 'a campaign'} was not approved.`,
-            target_type: 'influencer',
-            target_id: application.influencerId,
-            read: false
-          });
+        const campaignName = campaign?.title || 'a campaign';
+
+        // Create notification for the influencer
+        await createNotification({
+          type: status === 'approved' ? 'application_approved' : 'application_rejected',
+          message: `Your application for ${campaignName} has been ${status}`,
+          targetType: 'influencer',
+          targetId: application.influencerId,
+        });
       }
     } catch (error) {
       console.error('Error updating application status:', error);
       throw error;
     }
   };
-  
-  // Send a message
+
+  // Send message
   const sendMessage = async (receiverId: string, content: string) => {
-    if (!user) {
-      throw new Error("You must be logged in to send messages");
+    if (!user?.dbId) {
+      console.error('User ID not available');
+      return;
     }
-    
+
     try {
-      // Determine receiver type (admin or influencer)
-      // For this demo, we'll assume the receiver is an admin if current user is influencer, and vice versa
       const receiverType = user.role === 'admin' ? 'influencer' : 'admin';
-      
       const { data, error } = await supabase
         .from('messages')
         .insert({
@@ -618,176 +329,243 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           sender_id: user.dbId,
           receiver_type: receiverType,
           receiver_id: receiverId,
-          content,
-          read: false
+          content: content,
         })
         .select()
         .single();
-        
+
       if (error) throw error;
-      
-      if (data) {
-        const newMessage: Message = {
-          id: data.id,
-          senderType: data.sender_type,
-          senderId: data.sender_id,
-          receiverType: data.receiver_type,
-          receiverId: data.receiver_id,
-          content: data.content,
-          read: data.read,
-          createdAt: data.created_at
-        };
-        
-        setMessages(prev => [...prev, newMessage]);
-        
-        // Create notification for receiver
-        await supabase
-          .from('notifications')
-          .insert({
-            type: 'new_message',
-            message: `New message from ${user.name}`,
-            target_type: receiverType,
-            target_id: receiverId,
-            read: false
-          });
-      }
+
+      // Update local state
+      setMessages(prev => [...prev, data]);
+
+      // Create notification for the receiver
+      await createNotification({
+        type: 'new_message',
+        message: `New message from ${user.name}`,
+        targetType: receiverType,
+        targetId: receiverId,
+      });
     } catch (error) {
       console.error('Error sending message:', error);
       throw error;
     }
   };
-  
+
+  // Create notification
+  const createNotification = async (notification: Omit<Notification, 'id' | 'createdAt'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .insert([notification])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update local state
+      setNotifications(prev => [...prev, data]);
+    } catch (error) {
+      console.error('Error creating notification:', error);
+    }
+  };
+
   // Mark notification as read
-  const markNotificationAsRead = async (id: string) => {
+  const markNotificationAsRead = async (notificationId: string) => {
     try {
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
-        .eq('id', id);
-        
+        .eq('id', notificationId);
+
       if (error) throw error;
-      
-      setNotifications(prev => prev.map(notification => 
-        notification.id === id ? { ...notification, read: true } : notification
-      ));
+
+      // Update local state
+      setNotifications(prev =>
+        prev.map(notification =>
+          notification.id === notificationId ? { ...notification, read: true } : notification
+        )
+      );
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
   };
-  
-  // Get eligible campaigns for current influencer
+
+  // Get eligible campaigns
   const getEligibleCampaigns = () => {
-    if (!user || user.role !== "influencer") {
-      return [];
-    }
-    
-    const influencerUser = user as InfluencerUser;
-    
+    if (!user) return [];
+
     return campaigns.filter(campaign => {
-      // Only show active campaigns
       if (campaign.status !== 'active') return false;
-      
-      // Check eligibility
-      return (influencerUser.followerCount || 0) >= campaign.minFollowers &&
-             (!campaign.categories.length || campaign.categories.some(cat => 
-                influencerUser.categories?.includes(cat)
-             )) &&
-             (!campaign.city || influencerUser.city === campaign.city);
+      if (campaign.minFollowers && user.followerCount && user.followerCount < campaign.minFollowers) return false;
+      if (campaign.city && user.city && campaign.city !== user.city) return false;
+      if (campaign.categories && user.categories && !campaign.categories.some(cat => user.categories?.includes(cat))) return false;
+
+      return true;
     });
   };
-  
-  // Get eligible influencers for a specific campaign
-  const getEligibleInfluencers = (campaignId: string) => {
-    const campaign = campaigns.find(c => c.id === campaignId);
-    if (!campaign) return [];
-    
-    return influencers.filter(influencer => 
-      (influencer.followerCount || 0) >= campaign.minFollowers &&
-      (!campaign.categories.length || campaign.categories.some(cat => 
-        influencer.categories?.includes(cat)
-      )) &&
-      (!campaign.city || influencer.city === campaign.city)
-    );
-  };
-  
-  // Check if an influencer is eligible for a campaign
-  const isInfluencerEligible = (campaignId: string, influencerId?: string) => {
-    const campaign = campaigns.find(c => c.id === campaignId);
+
+  // Check if influencer is eligible for a campaign
+  const isInfluencerEligible = (campaignId: string) => {
+    if (!user) return false;
+
+    const campaign = campaigns.find(campaign => campaign.id === campaignId);
+
     if (!campaign) return false;
-    
-    let influencerUser: InfluencerUser | null = null;
-    
-    if (influencerId) {
-      const foundInfluencer = influencers.find(i => i.dbId === influencerId);
-      if (!foundInfluencer) return false;
-      influencerUser = foundInfluencer;
-    } else if (user?.role === "influencer") {
-      influencerUser = user as InfluencerUser;
-    }
-      
-    if (!influencerUser) return false;
-    
-    return (influencerUser.followerCount || 0) >= campaign.minFollowers &&
-           (!campaign.categories.length || campaign.categories.some(cat => 
-             influencerUser?.categories?.includes(cat)
-           )) &&
-           (!campaign.city || influencerUser.city === campaign.city);
+    if (campaign.status !== 'active') return false;
+    if (campaign.minFollowers && user.followerCount && user.followerCount < campaign.minFollowers) return false;
+    if (campaign.city && user.city && campaign.city !== user.city) return false;
+    if (campaign.categories && user.categories && !campaign.categories.some(cat => user.categories?.includes(cat))) return false;
+
+    return true;
   };
-  
-  // Check if current user has applied to a campaign
+
+  // Check if influencer has applied to a campaign
   const hasApplied = (campaignId: string, influencerId?: string) => {
-    const idToCheck = influencerId || (user?.dbId || '');
-    
-    return applications.some(
-      app => app.campaignId === campaignId && app.influencerId === idToCheck
-    );
+    const id = influencerId || user?.dbId;
+    return applications.some(application => application.campaignId === campaignId && application.influencerId === id);
   };
-  
+
+  // Get eligible influencers for a campaign
+  const getEligibleInfluencers = (campaignId: string) => {
+    const campaign = campaigns.find(campaign => campaign.id === campaignId);
+
+    if (!campaign) return [];
+
+    return influencers.filter(influencer => {
+      if (campaign.minFollowers && influencer.followerCount && influencer.followerCount < campaign.minFollowers) return false;
+      if (campaign.city && influencer.city && campaign.city !== influencer.city) return false;
+      if (campaign.categories && influencer.categories && !campaign.categories.some(cat => influencer.categories?.includes(cat))) return false;
+
+      return true;
+    });
+  };
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchCampaigns();
+    fetchApplications();
+    fetchInfluencers();
+    fetchMessages();
+    fetchNotifications();
+  }, [fetchCampaigns, fetchApplications, fetchInfluencers, fetchMessages, fetchNotifications]);
+
+  // Realtime campaign subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('campaigns')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'campaigns' },
+        (payload) => {
+          fetchCampaigns();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchCampaigns]);
+
+  // Realtime application subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('applications')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'applications' },
+        (payload) => {
+          fetchApplications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchApplications]);
+
+  // Realtime influencer subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('influencers')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'influencers' },
+        (payload) => {
+          fetchInfluencers();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchInfluencers]);
+
+  // Realtime notification subscription
+  useEffect(() => {
+    if (!user?.dbId) return;
+
+    const channel = supabase
+      .channel('notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `target_id=eq.${user.dbId}`
+        },
+        (payload) => {
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchNotifications, user?.dbId]);
+
+  const value: DataContextType = {
+    campaigns,
+    applications,
+    influencers,
+    messages,
+    notifications,
+    adminId,
+    fetchCampaigns,
+    fetchApplications,
+    fetchInfluencers,
+    fetchMessages,
+    fetchNotifications,
+    createCampaign,
+    updateCampaign,
+    deleteCampaign,
+    applyToCampaign,
+    updateApplicationStatus,
+    sendMessage,
+    createNotification,
+    markNotificationAsRead,
+    getEligibleCampaigns,
+    isInfluencerEligible,
+    hasApplied,
+    getEligibleInfluencers,
+  };
+
   return (
-    <DataContext.Provider value={{
-      // Data
-      campaigns,
-      influencers,
-      applications,
-      messages,
-      notifications,
-      conversations,
-      
-      // Campaign actions
-      createCampaign,
-      updateCampaign,
-      deleteCampaign,
-      
-      // Influencer actions
-      blockInfluencer,
-      deleteInfluencer,
-      
-      // Application actions
-      applyToCampaign,
-      updateApplicationStatus,
-      
-      // Message actions
-      sendMessage,
-      fetchMessages,
-      
-      // Notification actions
-      markNotificationAsRead,
-      
-      // Filter helpers
-      getEligibleCampaigns,
-      getEligibleInfluencers,
-      isInfluencerEligible,
-      hasApplied,
-    }}>
+    <DataContext.Provider value={value}>
       {children}
     </DataContext.Provider>
   );
-};
+}
 
-export const useData = () => {
+export function useData() {
   const context = useContext(DataContext);
   if (context === undefined) {
-    throw new Error("useData must be used within a DataProvider");
+    throw new Error('useData must be used within a DataProvider');
   }
   return context;
-};
+}

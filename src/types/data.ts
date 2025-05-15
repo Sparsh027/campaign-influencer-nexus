@@ -12,6 +12,24 @@ export interface Campaign {
   status: 'active' | 'completed' | 'draft';
 }
 
+export interface CampaignPhase {
+  id: string;
+  campaignId: string;
+  phaseNumber: number;
+  budgetAmount: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface InfluencerVisibility {
+  id: string;
+  influencerId: string;
+  campaignId: string;
+  assignedPhase: number | null;
+  negotiationVisible: boolean;
+  customOfferAmount: number | null;
+}
+
 export interface Application {
   id: string;
   campaignId: string;
@@ -20,6 +38,9 @@ export interface Application {
   createdAt: string;
   campaign?: Campaign;
   influencer?: User;
+  budgetAppliedFor?: number;
+  isNegotiated?: boolean;
+  finalOfferAmount?: number;
 }
 
 export interface Message {
