@@ -257,6 +257,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Create a new campaign
   const createCampaign = async (campaignData: Omit<Campaign, 'id' | 'createdAt'>) => {
     try {
+      // Ensure we only use allowed status values for the database
+      const status = campaignData.status === 'archived' ? 'completed' : campaignData.status;
+      
       // Convert to database field names
       const dbCampaign = {
         title: campaignData.title,
@@ -264,7 +267,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         min_followers: campaignData.minFollowers,
         city: campaignData.city,
         categories: campaignData.categories,
-        status: campaignData.status
+        status: status
       };
       
       const { data, error } = await supabase
@@ -307,7 +310,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (campaignData.minFollowers !== undefined) dbCampaign.min_followers = campaignData.minFollowers;
       if (campaignData.city !== undefined) dbCampaign.city = campaignData.city;
       if (campaignData.categories !== undefined) dbCampaign.categories = campaignData.categories;
-      if (campaignData.status !== undefined) dbCampaign.status = campaignData.status;
+      
+      // Handle status special case to ensure compatibility with database
+      if (campaignData.status !== undefined) {
+        // Convert 'archived' to 'completed' for database compatibility
+        dbCampaign.status = campaignData.status === 'archived' ? 'completed' : campaignData.status;
+      }
       
       const { error } = await supabase
         .from('campaigns')

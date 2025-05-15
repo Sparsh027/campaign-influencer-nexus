@@ -16,7 +16,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -182,7 +181,7 @@ export default function InfluencerCampaigns() {
             <CampaignCard
               key={campaign.id}
               campaign={campaign}
-              applied={hasApplied(campaign.id, user.dbId)}
+              applied={hasApplied(campaign.id, user?.dbId || '')}
               onApply={() => handleApplyToCampaign(campaign.id)}
             />
           ))
@@ -209,9 +208,9 @@ export default function InfluencerCampaigns() {
               <Textarea id="applicationText" className="col-span-3" value={applicationText} onChange={(e) => setApplicationText(e.target.value)} />
             </div>
           </div>
-          {/* <DialogFooter>
-            <Button type="submit">Save changes</Button>
-          </DialogFooter> */}
+          <div className="flex justify-end">
+            <Button onClick={submitApplication}>Submit Application</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

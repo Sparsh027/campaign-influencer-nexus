@@ -1,3 +1,4 @@
+
 import { User } from './auth';
 
 export interface Campaign {
@@ -7,7 +8,7 @@ export interface Campaign {
   minFollowers: number;
   city: string | null;
   categories: string[];
-  status: 'draft' | 'active' | 'completed' | 'archived';
+  status: 'draft' | 'active' | 'completed'; // Removed 'archived' to match Supabase type
   createdAt: string;
 }
 
