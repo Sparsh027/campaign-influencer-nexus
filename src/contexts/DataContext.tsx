@@ -1,6 +1,7 @@
+
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Campaign, Application, Message, Notification, CampaignPhase, InfluencerVisibility } from '@/types/data';
+import { Campaign, Application, Message, Notification, CampaignPhase, InfluencerVisibility, Conversation } from '@/types/data';
 import { useAuth } from './AuthContext';
 import { AdminUser, InfluencerUser, User } from '@/types/auth';
 
@@ -12,6 +13,7 @@ interface DataContextType {
   notifications: Notification[];
   campaignPhases: CampaignPhase[];
   influencerVisibilities: InfluencerVisibility[];
+  conversations: Conversation[];
   adminId: string | null;
   fetchCampaigns: () => Promise<void>;
   fetchApplications: () => Promise<void>;
@@ -49,6 +51,8 @@ interface DataContextType {
   getInfluencerVisibility: (influencerId: string, campaignId: string) => InfluencerVisibility | undefined;
   getActiveCampaignPhase: (campaignId: string) => CampaignPhase | undefined;
   getVisibleBudgetForInfluencer: (influencerId: string, campaignId: string) => number | null;
+  blockInfluencer?: (influencerId: string) => Promise<void>;
+  deleteInfluencer?: (influencerId: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -61,6 +65,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [campaignPhases, setCampaignPhases] = useState<CampaignPhase[]>([]);
   const [influencerVisibilities, setInfluencerVisibilities] = useState<InfluencerVisibility[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [adminId, setAdminId] = useState<string | null>(null);
   const { user } = useAuth();
 
@@ -82,6 +87,69 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     fetchAdminId();
   }, [user?.role, user?.id]);
+
+  // Prepare conversations from messages
+  useEffect(() => {
+    if (!user?.dbId) return;
+
+    // Process messages to create conversation list
+    const processConversations = () => {
+      // Get unique user IDs the current user has exchanged messages with
+      const contactIds = new Set<string>();
+      const unreadCounts: Record<string, number> = {};
+      const contactNames: Record<string, string> = {};
+      
+      messages.forEach(msg => {
+        let contactId: string | null = null;
+        
+        // If current user is the sender, the contact is the receiver
+        if (msg.senderId === user.dbId) {
+          contactId = msg.receiverId;
+          // Store contact name if available
+          if (msg.receiver?.name) {
+            contactNames[contactId] = msg.receiver.name;
+          }
+        }
+        // If current user is the receiver, the contact is the sender
+        else if (msg.receiverId === user.dbId) {
+          contactId = msg.senderId;
+          // Store contact name if available
+          if (msg.sender?.name) {
+            contactNames[contactId] = msg.sender.name;
+          }
+          
+          // Count unread messages
+          if (!msg.read) {
+            unreadCounts[contactId] = (unreadCounts[contactId] || 0) + 1;
+          }
+        }
+        
+        if (contactId) {
+          contactIds.add(contactId);
+        }
+      });
+      
+      // Create conversation objects
+      const conversationList: Conversation[] = Array.from(contactIds).map(id => ({
+        id,
+        name: contactNames[id] || `Contact ${id.substr(0, 8)}`,
+        unread: unreadCounts[id] || 0,
+      }));
+      
+      // Special case for admin: if admin-1 doesn't exist, add it for influencers
+      if (user.role === 'influencer' && !conversationList.some(c => c.id === 'admin-1')) {
+        conversationList.unshift({
+          id: 'admin-1',
+          name: 'Admin',
+          unread: 0
+        });
+      }
+
+      setConversations(conversationList);
+    };
+    
+    processConversations();
+  }, [messages, user?.dbId, user?.role]);
 
   // Fetch campaigns
   const fetchCampaigns = useCallback(async () => {
@@ -212,7 +280,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // Map database fields to our interface properties
       const formattedNotifications: Notification[] = data.map(item => ({
         id: item.id,
-        type: item.type as any, // Cast to handle extended notification types
+        type: item.type as Notification['type'], // Cast to handle extended notification types
         message: item.message,
         targetType: item.target_type,
         targetId: item.target_id,
@@ -482,7 +550,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
         // Create notification for the influencer
         await createNotification({
-          type: status === 'approved' ? 'application_approved' : 'application_rejected' as any,
+          type: status === 'approved' ? 'application_approved' : 'application_rejected',
           message: `Your application for ${campaignName} has been ${status}`,
           targetType: 'influencer',
           targetId: application.influencerId,
@@ -510,7 +578,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const dbMessage = {
         sender_type: user.role,
         sender_id: user.dbId,
-        receiver_type: receiverType,
+        receiver_type: receiverType as 'admin' | 'influencer',
         receiver_id: receiverId,
         content: content,
       };
@@ -576,7 +644,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // Format the notification for our state
       const newNotification: Notification = {
         id: data.id,
-        type: data.type as any,
+        type: data.type as Notification['type'],
         message: data.message,
         targetType: data.target_type,
         targetId: data.target_id,
@@ -617,11 +685,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const getEligibleCampaigns = () => {
     if (!user) return [];
 
+    // We need to check if the user is an influencer before accessing properties specific to influencers
+    if (user.role !== 'influencer') return [];
+
+    const influencerUser = user as InfluencerUser;
+    
     return campaigns.filter(campaign => {
       if (campaign.status !== 'active') return false;
-      if (campaign.minFollowers && user.followerCount && user.followerCount < campaign.minFollowers) return false;
-      if (campaign.city && user.city && campaign.city !== user.city) return false;
-      if (campaign.categories && user.categories && !campaign.categories.some(cat => user.categories?.includes(cat))) return false;
+      if (campaign.minFollowers && influencerUser.followerCount && influencerUser.followerCount < campaign.minFollowers) return false;
+      if (campaign.city && influencerUser.city && campaign.city !== influencerUser.city) return false;
+      if (campaign.categories && influencerUser.categories && !campaign.categories.some(cat => influencerUser.categories?.includes(cat))) return false;
 
       return true;
     });
@@ -629,15 +702,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // Check if influencer is eligible for a campaign
   const isInfluencerEligible = (campaignId: string) => {
-    if (!user) return false;
+    if (!user || user.role !== 'influencer') return false;
 
+    const influencerUser = user as InfluencerUser;
     const campaign = campaigns.find(campaign => campaign.id === campaignId);
 
     if (!campaign) return false;
     if (campaign.status !== 'active') return false;
-    if (campaign.minFollowers && user.followerCount && user.followerCount < campaign.minFollowers) return false;
-    if (campaign.city && user.city && campaign.city !== user.city) return false;
-    if (campaign.categories && user.categories && !campaign.categories.some(cat => user.categories?.includes(cat))) return false;
+    if (campaign.minFollowers && influencerUser.followerCount && influencerUser.followerCount < campaign.minFollowers) return false;
+    if (campaign.city && influencerUser.city && campaign.city !== influencerUser.city) return false;
+    if (campaign.categories && influencerUser.categories && !campaign.categories.some(cat => influencerUser.categories?.includes(cat))) return false;
 
     return true;
   };
@@ -1001,6 +1075,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     notifications,
     campaignPhases,
     influencerVisibilities,
+    conversations,
     adminId,
     fetchCampaigns,
     fetchApplications,

@@ -22,7 +22,7 @@ export default function AdminInbox() {
   const [showContacts, setShowContacts] = useState(!isMobile);
 
   // Get the selectedContactUser details
-  const selectedContactUser = influencers.find(i => i.id === selectedContact);
+  const selectedContactUser = influencers.find(i => i.dbId === selectedContact);
 
   // Select first conversation as default or when conversations change
   useEffect(() => {

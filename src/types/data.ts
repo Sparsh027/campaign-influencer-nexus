@@ -66,3 +66,9 @@ export interface Notification {
   read: boolean;
   createdAt: string;
 }
+
+export interface Conversation {
+  id: string;
+  name: string;
+  unread: number;
+}
