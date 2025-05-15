@@ -65,8 +65,7 @@ export default function CampaignApplications({ campaignId }: CampaignApplication
   
   // Handle message
   const handleMessage = (influencerId: string) => {
-    navigate('/admin/inbox');
-    // Ideally we'd navigate to the specific conversation
+    navigate(`/admin/inbox?contact=${influencerId}`);
   };
   
   // Format date safely
@@ -129,8 +128,12 @@ export default function CampaignApplications({ campaignId }: CampaignApplication
                       <div className="flex justify-end gap-2">
                         <Select
                           disabled={updatingApplication === application.id}
-                          onValueChange={(value) => handleUpdateStatus(application.id, value as 'approved' | 'rejected')}
                           defaultValue={application.status}
+                          onValueChange={(value) => {
+                            if (value === 'approved' || value === 'rejected') {
+                              handleUpdateStatus(application.id, value);
+                            }
+                          }}
                         >
                           <SelectTrigger className="w-[110px]">
                             <SelectValue placeholder="Status" />

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
@@ -181,9 +180,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const otherPersonId = isUserSender ? message.receiverId : message.senderId;
       const otherPersonType = isUserSender ? message.receiverType : message.senderType;
       
-      const conversationKey = `${otherPersonType}-${otherPersonId}`;
-      
-      if (!conversationMap.has(conversationKey)) {
+      if (!conversationMap.has(otherPersonId)) {
         // Find the name of the other person
         let name = 'Unknown';
         if (otherPersonType === 'influencer') {
@@ -193,8 +190,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           name = 'Admin';
         }
 
-        conversationMap.set(conversationKey, {
-          id: conversationKey,
+        conversationMap.set(otherPersonId, {
+          id: `${otherPersonType}-${otherPersonId}`,
           participantId: otherPersonId,
           participantType: otherPersonType as 'admin' | 'influencer',
           name,
@@ -204,7 +201,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
       }
       
-      const conversation = conversationMap.get(conversationKey)!;
+      const conversation = conversationMap.get(otherPersonId)!;
       conversation.messages.push(message);
       
       // Check if this is a newer message than the current lastMessage
