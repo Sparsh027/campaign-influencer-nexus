@@ -58,11 +58,11 @@ export interface Message {
 
 export interface Notification {
   id: string;
-  type: 'new_influencer' | 'new_application' | 'new_message';
+  type: 'new_influencer' | 'new_application' | 'new_message' | 'application_approved' | 'application_rejected';
   message: string;
   targetType: 'admin' | 'influencer';
   targetId: string;
-  userId: string; // Adding userId field to fix errors
+  userId: string;
   read: boolean;
   createdAt: string;
 }
