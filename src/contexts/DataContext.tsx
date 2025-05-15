@@ -24,7 +24,7 @@ export interface DataContextType {
   updateCampaign: (id: string, campaignData: Partial<Campaign>) => Promise<void>;
   deleteCampaign: (id: string) => Promise<void>;
   
-  applyToCampaign: (campaignId: string, budgetAppliedFor?: number) => Promise<void>;
+  applyToCampaign: (campaignId: string, influencerId?: string, status?: 'pending' | 'approved' | 'rejected', budgetAppliedFor?: number) => Promise<void>;
   updateApplicationStatus: (applicationId: string, status: 'approved' | 'rejected') => Promise<void>;
   
   sendMessage: (receiverId: string, content: string) => Promise<void>;
@@ -36,6 +36,7 @@ export interface DataContextType {
   blockInfluencer: (id: string) => Promise<void>;
   deleteInfluencer: (id: string) => Promise<void>;
   createNotification: (notificationData: Omit<Notification, 'id' | 'createdAt'>) => Promise<void>;
+  hasApplied: (campaignId: string, influencerId: string) => boolean;
 }
 
 // Create the context with a default value
@@ -117,6 +118,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // Map the database fields to our frontend model
       const mappedInfluencers: InfluencerUser[] = data.map(item => ({
+        id: item.id, // Keep the id field for compatibility with InfluencerUser type
         dbId: item.id,
         authId: item.auth_id,
         role: 'influencer',
@@ -182,13 +184,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const conversationKey = `${otherPersonType}-${otherPersonId}`;
       
       if (!conversationMap.has(conversationKey)) {
+        // Find the name of the other person
+        let name = 'Unknown';
+        if (otherPersonType === 'influencer') {
+          const influencer = influencers.find(inf => inf.dbId === otherPersonId);
+          name = influencer?.name || 'Unknown Influencer';
+        } else if (otherPersonType === 'admin') {
+          name = 'Admin';
+        }
+
         conversationMap.set(conversationKey, {
           id: conversationKey,
           participantId: otherPersonId,
           participantType: otherPersonType as 'admin' | 'influencer',
+          name,
           messages: [],
           lastMessage: null,
-          unreadCount: 0
+          unread: 0
         });
       }
       
@@ -202,7 +214,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // Count unread messages sent to the user
       if (!message.read && message.receiverType === user.role && message.receiverId === user.dbId) {
-        conversation.unreadCount++;
+        conversation.unread++;
       }
     });
     
@@ -227,7 +239,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Map the database fields to our frontend model
       const mappedNotifications: Notification[] = data.map(item => ({
         id: item.id,
-        type: item.type,
+        type: item.type as "new_influencer" | "new_application" | "new_message" | "application_approved" | "application_rejected",
         message: item.message,
         targetType: item.target_type,
         targetId: item.target_id,
@@ -335,10 +347,19 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
+  // Check if an influencer has applied to a campaign
+  const hasApplied = (campaignId: string, influencerId: string) => {
+    return applications.some(app => 
+      app.campaignId === campaignId && app.influencerId === influencerId
+    );
+  };
+  
   // Apply to a campaign
-  const applyToCampaign = async (campaignId: string, budgetAppliedFor?: number) => {
-    if (!user?.dbId) {
-      console.error('User ID not available');
+  const applyToCampaign = async (campaignId: string, influencerId?: string, status?: 'pending' | 'approved' | 'rejected', budgetAppliedFor?: number) => {
+    // Use provided influencer ID or fall back to the current user ID
+    const applicantId = influencerId || (user?.dbId || '');
+    if (!applicantId) {
+      console.error('No influencer ID available');
       return;
     }
     
@@ -346,9 +367,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Create the application
       const dbApplication = {
         campaign_id: campaignId,
-        influencer_id: user.dbId,
+        influencer_id: applicantId,
         budget_applied_for: budgetAppliedFor || null,
         is_negotiated: false,
+        status: status || 'pending'
       };
       
       const { data, error } = await supabase
@@ -377,7 +399,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Create notification for admin
       await createNotification({
         type: 'new_application',
-        message: `New application from ${user.name}`,
+        message: `New application for campaign`,
         targetType: 'admin',
         targetId: 'admin', // Generic admin target
         userId: 'admin',
@@ -450,41 +472,44 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         content: content,
       };
       
+      console.log('Sending message with data:', dbMessage);
+      
       const { data, error } = await supabase
         .from('messages')
         .insert(dbMessage)
-        .select()
-        .single();
+        .select();
 
       if (error) throw error;
 
-      // Format the message for our state
-      const newMessage: Message = {
-        id: data.id,
-        senderType: data.sender_type,
-        senderId: data.sender_id,
-        receiverType: data.receiver_type,
-        receiverId: data.receiver_id,
-        content: data.content,
-        read: data.read || false,
-        createdAt: data.created_at
-      };
-      
-      // Update local state
-      setMessages(prev => [...prev, newMessage]);
-      
-      // Update conversations
-      fetchMessages();
-
-      // Create notification for the receiver
-      await createNotification({
-        type: 'new_message',
-        message: `New message from ${user.name}`,
-        targetType: receiverType as 'admin' | 'influencer',
-        targetId: receiverId,
-        userId: receiverId,
-        read: false
-      });
+      if (data && data.length > 0) {
+        // Format the message for our state
+        const newMessage: Message = {
+          id: data[0].id,
+          senderType: data[0].sender_type,
+          senderId: data[0].sender_id,
+          receiverType: data[0].receiver_type,
+          receiverId: data[0].receiver_id,
+          content: data[0].content,
+          read: data[0].read || false,
+          createdAt: data[0].created_at
+        };
+        
+        // Update local state
+        setMessages(prev => [...prev, newMessage]);
+        
+        // Update conversations
+        fetchMessages();
+  
+        // Create notification for the receiver
+        await createNotification({
+          type: 'new_message',
+          message: `New message from ${user.name}`,
+          targetType: receiverType as 'admin' | 'influencer',
+          targetId: receiverId,
+          userId: receiverId,
+          read: false
+        });
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       throw error;
@@ -510,20 +535,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       if (error) throw error;
       
-      // Format the notification for our state
-      const newNotifications = data.map(item => ({
-        id: item.id,
-        type: item.type,
-        message: item.message,
-        targetType: item.target_type,
-        targetId: item.target_id,
-        userId: item.target_id, // Assuming userId is the same as targetId for now
-        read: item.read || false,
-        createdAt: item.created_at
-      }));
-      
-      // Update local state
-      setNotifications(prev => [...prev, ...newNotifications]);
+      if (data && data.length > 0) {
+        // Format the notification for our state
+        const newNotifications = data.map(item => ({
+          id: item.id,
+          type: item.type as "new_influencer" | "new_application" | "new_message" | "application_approved" | "application_rejected",
+          message: item.message,
+          targetType: item.target_type,
+          targetId: item.target_id,
+          userId: item.target_id, // Assuming userId is the same as targetId for now
+          read: item.read || false,
+          createdAt: item.created_at
+        }));
+        
+        // Update local state
+        setNotifications(prev => [...prev, ...newNotifications]);
+      }
     } catch (error) {
       console.error('Error creating notification:', error);
       throw error;
@@ -588,27 +615,27 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (campaign.status !== 'active') return false;
       
       // Check if the user has already applied
-      const alreadyApplied = applications.some(
-        app => app.campaignId === campaign.id && app.influencerId === user.dbId
-      );
-      if (alreadyApplied) return false;
+      if (hasApplied(campaign.id, user.dbId)) return false;
+      
+      // We need to cast the user to InfluencerUser to access specific properties
+      const influencer = user as InfluencerUser;
       
       // Check minimum followers requirement
-      if (campaign.minFollowers && (user as InfluencerUser).followerCount < campaign.minFollowers) {
+      if (campaign.minFollowers && influencer.followerCount < campaign.minFollowers) {
         return false;
       }
       
       // Check city requirement if specified
-      if (campaign.city && campaign.city !== (user as InfluencerUser).city) {
+      if (campaign.city && campaign.city !== influencer.city) {
         return false;
       }
       
       // Check category match if both have categories
       if (campaign.categories && campaign.categories.length > 0 && 
-          (user as InfluencerUser).categories && (user as InfluencerUser).categories.length > 0) {
+          influencer.categories && influencer.categories.length > 0) {
         // If there's at least one category match, include this campaign
         const match = campaign.categories.some(
-          category => (user as InfluencerUser).categories.includes(category)
+          category => influencer.categories.includes(category)
         );
         return match;
       }
@@ -623,12 +650,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!campaign) return [];
     
     return influencers.filter(influencer => {
-      // Check if the influencer has already applied
-      const alreadyApplied = applications.some(
-        app => app.campaignId === campaignId && app.influencerId === influencer.dbId
-      );
-      if (alreadyApplied) return false;
-      
       // Check minimum followers requirement
       if (campaign.minFollowers && influencer.followerCount < campaign.minFollowers) {
         return false;
@@ -729,7 +750,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     getEligibleInfluencers,
     blockInfluencer,
     deleteInfluencer,
-    createNotification
+    createNotification,
+    hasApplied
   };
   
   return (

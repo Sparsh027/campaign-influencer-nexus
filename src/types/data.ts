@@ -1,4 +1,3 @@
-
 import { User } from './auth';
 
 export interface Campaign {
@@ -6,10 +5,10 @@ export interface Campaign {
   title: string;
   description: string;
   minFollowers: number;
+  city: string | null;
   categories: string[];
-  city: string;
+  status: 'draft' | 'active' | 'completed' | 'archived';
   createdAt: string;
-  status: 'active' | 'completed' | 'draft';
 }
 
 export interface CampaignPhase {
@@ -34,13 +33,11 @@ export interface Application {
   id: string;
   campaignId: string;
   influencerId: string;
+  budgetAppliedFor: number | null;
+  isNegotiated: boolean;
+  finalOfferAmount: number | null;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
-  campaign?: Campaign;
-  influencer?: User;
-  budgetAppliedFor?: number;
-  isNegotiated?: boolean;
-  finalOfferAmount?: number;
 }
 
 export interface Message {
@@ -52,8 +49,6 @@ export interface Message {
   content: string;
   read: boolean;
   createdAt: string;
-  sender?: User;
-  receiver?: User;
 }
 
 export interface Notification {
@@ -69,6 +64,10 @@ export interface Notification {
 
 export interface Conversation {
   id: string;
+  participantId: string;
+  participantType: 'admin' | 'influencer';
   name: string;
+  messages: Message[];
+  lastMessage: Message | null;
   unread: number;
 }

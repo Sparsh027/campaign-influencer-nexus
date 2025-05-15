@@ -1,257 +1,219 @@
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Search, DollarSign } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useData } from '@/contexts/DataContext';
-import { Campaign } from '@/types/data';
-import { toast } from 'sonner';
-import { useInfluencerBudget } from '@/hooks/useInfluencerBudget';
+import { useAuth } from '@/contexts/AuthContext';
+import { CampaignCard } from '@/components/campaigns/CampaignCard';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
 export default function InfluencerCampaigns() {
-  const { campaigns, getEligibleCampaigns, isInfluencerEligible, hasApplied, applyToCampaign } = useData();
-  const { getCampaignBudget, isNegotiationEnabled, loading: budgetLoading } = useInfluencerBudget();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
-  const [isApplying, setIsApplying] = useState(false);
-  const [isNegotiating, setIsNegotiating] = useState(false);
+  const { user } = useAuth();
   const navigate = useNavigate();
-
-  const eligibleCampaigns = getEligibleCampaigns();
-
-  // Filter campaigns based on search term
-  const filteredCampaigns = campaigns
-    .filter(campaign => campaign.status === 'active')
-    .filter(campaign =>
-      campaign.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      campaign.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      campaign.categories.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase()))
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCity, setSelectedCity] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [applicationText, setApplicationText] = React.useState("");
+  const [open, setOpen] = React.useState(false)
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  
+  const { campaigns, applications, applyToCampaign, getEligibleCampaigns, hasApplied } = useData();
+  
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    } else if (user.role !== 'influencer') {
+      navigate('/admin/dashboard');
+    } else {
+      setLoading(false);
+    }
+  }, [user, navigate]);
+  
+  // Determine eligible campaigns and filter based on search/filters
+  const eligibleCampaigns = useMemo(() => {
+    // Get campaigns the user is eligible for
+    const baseEligibleCampaigns = getEligibleCampaigns();
+    
+    // Apply search query filter
+    const searchedCampaigns = baseEligibleCampaigns.filter(campaign =>
+      campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      campaign.description.toLowerCase().includes(searchQuery.toLowerCase())
     );
+    
+    // Apply category filter
+    const categoryFilteredCampaigns = selectedCategories.length > 0 ? searchedCampaigns.filter(campaign =>
+      campaign.categories.some(category => selectedCategories.includes(category))
+    ) : searchedCampaigns;
+    
+    // Apply city filter
+    const cityFilteredCampaigns = selectedCity ? categoryFilteredCampaigns.filter(campaign =>
+      campaign.city === selectedCity
+    ) : categoryFilteredCampaigns;
+    
+    return cityFilteredCampaigns;
+  }, [getEligibleCampaigns, searchQuery, selectedCategories, selectedCity]);
+  
+  // Get all unique categories and cities from campaigns
+  const allCategories = useMemo(() => {
+    const categories = new Set<string>();
+    campaigns.forEach(campaign => {
+      campaign.categories.forEach(category => categories.add(category));
+    });
+    return Array.from(categories);
+  }, [campaigns]);
+  
+  const allCities = useMemo(() => {
+    const cities = new Set<string>();
+    campaigns.forEach(campaign => {
+      if (campaign.city) {
+        cities.add(campaign.city);
+      }
+    });
+    return Array.from(cities);
+  }, [campaigns]);
+  
+  const handleCategorySelect = (category: string) => {
+    setSelectedCategories(prev =>
+      prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]
+    );
+  };
+  
+  const handleApplyToCampaign = async (campaignId: string) => {
+    setSelectedCampaignId(campaignId);
+    setOpen(true);
+  };
 
-  const handleApply = async (campaignId: string) => {
-    setIsApplying(true);
+  const submitApplication = async () => {
+    if (!selectedCampaignId) return;
+
     try {
-      const budget = getCampaignBudget(campaignId);
-      await applyToCampaign(campaignId, undefined, 'pending', budget, false);
-      setSelectedCampaign(null);
-      toast.success("Application submitted successfully!");
+      setLoading(true);
+      await applyToCampaign(selectedCampaignId);
+      toast({
+        title: "Success",
+        description: "Application submitted successfully!",
+      });
+      setOpen(false);
+      setApplicationText("");
     } catch (error) {
-      console.error('Apply error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to apply');
+      console.error('Error applying to campaign:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit application. Please try again.",
+        variant: "destructive"
+      });
     } finally {
-      setIsApplying(false);
+      setLoading(false);
     }
   };
-
-  const handleNegotiate = (campaignId: string) => {
-    setIsNegotiating(true);
-    // Navigate to inbox where they can discuss with admin
-    navigate('/influencer/inbox');
-    toast.info("Start your negotiation by sending a message to the admin");
-    setIsNegotiating(false);
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Campaigns</h1>
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search campaigns..." 
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+  
+  if (loading) {
+    return (
+      <div className="container mx-auto p-4 space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <Skeleton key={i} className="h-48 w-full" />
+          ))}
         </div>
       </div>
-
-      {/* Campaign filters */}
-      <div className="flex flex-col md:flex-row md:items-center gap-4">
-        <Button 
-          variant={searchTerm === '' ? 'default' : 'outline'}
-          onClick={() => setSearchTerm('')}
-        >
-          All Campaigns
-        </Button>
-        <Button 
-          variant={searchTerm === 'eligible' ? 'default' : 'outline'}
-          onClick={() => setSearchTerm('eligible')}
-        >
-          Eligible For Me
-        </Button>
+    );
+  }
+  
+  return (
+    <div className="container mx-auto p-4 space-y-4">
+      <h1 className="text-2xl font-bold">Available Campaigns</h1>
+      
+      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+        <Input
+          type="text"
+          placeholder="Search campaigns..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1"
+        />
+        <Select value={selectedCity} onValueChange={setSelectedCity}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by city" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Cities</SelectItem>
+            {allCities.map(city => (
+              <SelectItem key={city} value={city}>{city}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-
-      {/* Campaigns list */}
-      <div className="grid gap-6">
-        {filteredCampaigns.length > 0 ? (
-          filteredCampaigns.map((campaign) => {
-            const isEligible = isInfluencerEligible(campaign.id);
-            const userHasApplied = hasApplied(campaign.id);
-            const campaignBudget = getCampaignBudget(campaign.id);
-            const canNegotiate = isNegotiationEnabled(campaign.id);
-            
-            // If searching for eligible campaigns only
-            if (searchTerm === 'eligible' && !isEligible) {
-              return null;
-            }
-            
-            return (
-              <Card key={campaign.id} className={`overflow-hidden ${!isEligible ? 'opacity-70' : ''}`}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-xl flex items-center gap-2">
-                        {campaign.title}
-                        {userHasApplied && (
-                          <Badge variant="outline" className="ml-2">Applied</Badge>
-                        )}
-                      </CardTitle>
-                      <CardDescription className="mt-1">
-                        Created on {new Date(campaign.createdAt).toLocaleDateString()}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                
-                <CardContent>
-                  <p className="text-sm mb-4">{campaign.description}</p>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <p className="text-muted-foreground">Min. Followers</p>
-                      <p className="font-medium">{campaign.minFollowers.toLocaleString()}</p>
-                    </div>
-                    
-                    {campaign.city && (
-                      <div>
-                        <p className="text-muted-foreground">City</p>
-                        <p className="font-medium">{campaign.city}</p>
-                      </div>
-                    )}
-                    
-                    <div>
-                      <p className="text-muted-foreground">Budget</p>
-                      <p className="font-medium text-brand-600">
-                        {!budgetLoading ? (
-                          campaignBudget > 0 ? `₹${campaignBudget.toLocaleString()}` : 'Contact for details'
-                        ) : (
-                          'Loading...'
-                        )}
-                      </p>
-                    </div>
-                    
-                    <div className="col-span-2 md:col-span-1">
-                      <p className="text-muted-foreground mb-1">Categories</p>
-                      <div className="flex flex-wrap gap-1">
-                        {campaign.categories.map((category) => (
-                          <Badge key={category} variant="outline" className="capitalize">
-                            {category}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6 flex justify-end gap-2">
-                    {isEligible && !userHasApplied && canNegotiate && (
-                      <Button
-                        variant="outline"
-                        onClick={() => handleNegotiate(campaign.id)}
-                        disabled={isNegotiating}
-                      >
-                        <DollarSign className="h-4 w-4 mr-2" />
-                        {isNegotiating ? "Processing..." : "Negotiate"}
-                      </Button>
-                    )}
-                    <Button 
-                      variant={userHasApplied ? "outline" : "default"}
-                      onClick={() => setSelectedCampaign(campaign)} 
-                      disabled={!isEligible || userHasApplied}
-                    >
-                      {userHasApplied 
-                        ? "Applied" 
-                        : isEligible 
-                          ? "Apply"
-                          : "Not Eligible"
-                      }
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
+      
+      <ScrollArea className="rounded-md border p-2">
+        <div className="flex flex-wrap gap-2">
+          {allCategories.map(category => (
+            <Badge
+              key={category}
+              variant={selectedCategories.includes(category) ? "default" : "outline"}
+              onClick={() => handleCategorySelect(category)}
+              className="cursor-pointer"
+            >
+              {category}
+            </Badge>
+          ))}
+        </div>
+      </ScrollArea>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {eligibleCampaigns.length > 0 ? (
+          eligibleCampaigns.map(campaign => (
+            <CampaignCard
+              key={campaign.id}
+              campaign={campaign}
+              applied={hasApplied(campaign.id, user.dbId)}
+              onApply={() => handleApplyToCampaign(campaign.id)}
+            />
+          ))
         ) : (
-          <Card className="flex justify-center items-center py-12">
-            <p className="text-muted-foreground">
-              {searchTerm ? "No campaigns match your search criteria." : "No active campaigns found."}
-            </p>
-          </Card>
+          <div className="col-span-full text-center">
+            <p className="text-muted-foreground">No campaigns found matching your criteria.</p>
+          </div>
         )}
       </div>
 
-      {/* Apply dialog */}
-      {selectedCampaign && (
-        <Dialog open={!!selectedCampaign} onOpenChange={(open) => !open && setSelectedCampaign(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Apply to Campaign</DialogTitle>
-              <DialogDescription>
-                You're applying to "{selectedCampaign.title}"
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="py-4">
-              <p className="mb-4">{selectedCampaign.description}</p>
-              
-              <div className="space-y-4 border-t border-b py-4 my-4">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Minimum followers:</span>
-                  <span>{selectedCampaign.minFollowers.toLocaleString()}</span>
-                </div>
-                
-                {selectedCampaign.city && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">City:</span>
-                    <span>{selectedCampaign.city}</span>
-                  </div>
-                )}
-                
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Budget:</span>
-                  <span className="font-semibold text-brand-600">
-                    ₹{getCampaignBudget(selectedCampaign.id).toLocaleString()}
-                  </span>
-                </div>
-                
-                <div>
-                  <p className="text-muted-foreground mb-1">Categories:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedCampaign.categories.map((category) => (
-                      <Badge key={category} variant="outline" className="capitalize">
-                        {category}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setSelectedCampaign(null)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => handleApply(selectedCampaign.id)} disabled={isApplying}>
-                  {isApplying ? "Applying..." : "Confirm Application"}
-                </Button>
-              </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Submit Application</DialogTitle>
+            <DialogDescription>
+              Write a short message to the campaign owner to introduce yourself and explain why you'd be a good fit.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="applicationText" className="text-right">
+                Message
+              </Label>
+              <Textarea id="applicationText" className="col-span-3" value={applicationText} onChange={(e) => setApplicationText(e.target.value)} />
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+          </div>
+          {/* <DialogFooter>
+            <Button type="submit">Save changes</Button>
+          </DialogFooter> */}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
