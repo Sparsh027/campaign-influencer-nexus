@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
-import { Campaign, Application, Message, Notification, Conversation } from '@/types/data';
+import { Campaign, Application, Message, Notification, Conversation, CampaignPhase, InfluencerVisibility } from '@/types/data';
 import { InfluencerUser, User } from '@/types/auth';
 
 // Define the shape of our context
@@ -258,7 +258,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const createCampaign = async (campaignData: Omit<Campaign, 'id' | 'createdAt'>) => {
     try {
       // Ensure we only use allowed status values for the database
-      const status = campaignData.status === 'archived' ? 'completed' : campaignData.status;
+      // Fix: Remove the comparison with 'archived' since it's not in the allowed types
+      const status = campaignData.status;
       
       // Convert to database field names
       const dbCampaign = {
@@ -311,10 +312,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (campaignData.city !== undefined) dbCampaign.city = campaignData.city;
       if (campaignData.categories !== undefined) dbCampaign.categories = campaignData.categories;
       
-      // Handle status special case to ensure compatibility with database
+      // Handle status case - no need to convert since 'archived' is not in our type anymore
       if (campaignData.status !== undefined) {
-        // Convert 'archived' to 'completed' for database compatibility
-        dbCampaign.status = campaignData.status === 'archived' ? 'completed' : campaignData.status;
+        dbCampaign.status = campaignData.status;
       }
       
       const { error } = await supabase
