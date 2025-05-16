@@ -1,35 +1,29 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { CampaignCard } from '@/components/campaigns/CampaignCard';
+import CampaignCard from '@/components/campaigns/CampaignCard';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from '@/components/ui/button';
 
 export default function InfluencerCampaigns() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedCity, setSelectedCity] = useState('all'); // Using 'all' instead of empty string
   const [loading, setLoading] = useState(true);
-  const [applicationText, setApplicationText] = React.useState("");
-  const [open, setOpen] = React.useState(false)
+  const [applicationText, setApplicationText] = useState("");
+  const [open, setOpen] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   
   const { campaigns, applications, applyToCampaign, getEligibleCampaigns, hasApplied } = useData();
@@ -50,20 +44,23 @@ export default function InfluencerCampaigns() {
     const baseEligibleCampaigns = getEligibleCampaigns();
     
     // Apply search query filter
-    const searchedCampaigns = baseEligibleCampaigns.filter(campaign =>
-      campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      campaign.description.toLowerCase().includes(searchQuery.toLowerCase())
+    const searchedCampaigns = baseEligibleCampaigns.filter(
+      (campaign) => 
+        campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        campaign.description.toLowerCase().includes(searchQuery.toLowerCase())
     );
     
     // Apply category filter
-    const categoryFilteredCampaigns = selectedCategories.length > 0 ? searchedCampaigns.filter(campaign =>
-      campaign.categories.some(category => selectedCategories.includes(category))
-    ) : searchedCampaigns;
+    const categoryFilteredCampaigns = selectedCategories.length > 0 
+      ? searchedCampaigns.filter(campaign => 
+          campaign.categories.some(category => selectedCategories.includes(category))
+        )
+      : searchedCampaigns;
     
     // Apply city filter
-    const cityFilteredCampaigns = selectedCity ? categoryFilteredCampaigns.filter(campaign =>
-      campaign.city === selectedCity
-    ) : categoryFilteredCampaigns;
+    const cityFilteredCampaigns = selectedCity !== 'all'
+      ? categoryFilteredCampaigns.filter(campaign => campaign.city === selectedCity)
+      : categoryFilteredCampaigns;
     
     return cityFilteredCampaigns;
   }, [getEligibleCampaigns, searchQuery, selectedCategories, selectedCity]);
@@ -71,15 +68,15 @@ export default function InfluencerCampaigns() {
   // Get all unique categories and cities from campaigns
   const allCategories = useMemo(() => {
     const categories = new Set<string>();
-    campaigns.forEach(campaign => {
-      campaign.categories.forEach(category => categories.add(category));
+    campaigns.forEach((campaign) => {
+      campaign.categories.forEach((category) => categories.add(category));
     });
     return Array.from(categories);
   }, [campaigns]);
   
   const allCities = useMemo(() => {
     const cities = new Set<string>();
-    campaigns.forEach(campaign => {
+    campaigns.forEach((campaign) => {
       if (campaign.city) {
         cities.add(campaign.city);
       }
@@ -88,8 +85,10 @@ export default function InfluencerCampaigns() {
   }, [campaigns]);
   
   const handleCategorySelect = (category: string) => {
-    setSelectedCategories(prev =>
-      prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]
+    setSelectedCategories((prev) =>
+      prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category]
     );
   };
   
@@ -97,16 +96,16 @@ export default function InfluencerCampaigns() {
     setSelectedCampaignId(campaignId);
     setOpen(true);
   };
-
+  
   const submitApplication = async () => {
     if (!selectedCampaignId) return;
-
+    
     try {
       setLoading(true);
       await applyToCampaign(selectedCampaignId);
       toast({
         title: "Success",
-        description: "Application submitted successfully!",
+        description: "Application submitted successfully!"
       });
       setOpen(false);
       setApplicationText("");
@@ -147,68 +146,77 @@ export default function InfluencerCampaigns() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="flex-1"
         />
+        
         <Select value={selectedCity} onValueChange={setSelectedCity}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filter by city" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Cities</SelectItem>
-            {allCities.map(city => (
-              <SelectItem key={city} value={city}>{city}</SelectItem>
+            <SelectItem value="all">All Cities</SelectItem>
+            {allCities.map((city) => (
+              <SelectItem key={city} value={city}>
+                {city}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
       
-      <ScrollArea className="rounded-md border p-2">
-        <div className="flex flex-wrap gap-2">
-          {allCategories.map(category => (
-            <Badge
-              key={category}
-              variant={selectedCategories.includes(category) ? "default" : "outline"}
-              onClick={() => handleCategorySelect(category)}
-              className="cursor-pointer"
-            >
-              {category}
-            </Badge>
-          ))}
-        </div>
-      </ScrollArea>
+      {allCategories.length > 0 && (
+        <ScrollArea className="whitespace-nowrap">
+          <div className="flex space-x-2 pb-2">
+            {allCategories.map((category) => (
+              <Badge
+                key={category}
+                variant={selectedCategories.includes(category) ? "default" : "outline"}
+                className="cursor-pointer"
+                onClick={() => handleCategorySelect(category)}
+              >
+                {category}
+              </Badge>
+            ))}
+          </div>
+        </ScrollArea>
+      )}
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {eligibleCampaigns.length > 0 ? (
-          eligibleCampaigns.map(campaign => (
+      {eligibleCampaigns.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {eligibleCampaigns.map((campaign) => (
             <CampaignCard
               key={campaign.id}
               campaign={campaign}
-              applied={hasApplied(campaign.id, user?.dbId || '')}
+              hasApplied={hasApplied(campaign.id)}
               onApply={() => handleApplyToCampaign(campaign.id)}
             />
-          ))
-        ) : (
-          <div className="col-span-full text-center">
-            <p className="text-muted-foreground">No campaigns found matching your criteria.</p>
-          </div>
-        )}
-      </div>
-
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">No campaigns found based on your filters.</p>
+        </div>
+      )}
+      
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Submit Application</DialogTitle>
+            <DialogTitle>Apply to Campaign</DialogTitle>
             <DialogDescription>
-              Write a short message to the campaign owner to introduce yourself and explain why you'd be a good fit.
+              Submit your application for this campaign. Tell the brand why you're a good fit.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="applicationText" className="text-right">
-                Message
-              </Label>
-              <Textarea id="applicationText" className="col-span-3" value={applicationText} onChange={(e) => setApplicationText(e.target.value)} />
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="message">Application Message (Optional)</Label>
+              <Textarea
+                id="message"
+                placeholder="Why are you interested in this campaign?"
+                value={applicationText}
+                onChange={(e) => setApplicationText(e.target.value)}
+              />
             </div>
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
             <Button onClick={submitApplication}>Submit Application</Button>
           </div>
         </DialogContent>
