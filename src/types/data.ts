@@ -10,6 +10,7 @@ export interface Campaign {
   categories: string[];
   status: 'draft' | 'active' | 'completed'; // Removed 'archived' to match Supabase type
   createdAt: string;
+  initialBudget?: number;
 }
 
 export interface CampaignPhase {

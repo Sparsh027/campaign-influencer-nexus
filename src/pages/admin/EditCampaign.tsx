@@ -33,8 +33,9 @@ const campaignSchema = z.object({
   description: z.string().min(10, { message: "Please provide a detailed description." }),
   minFollowers: z.coerce.number().int().min(0),
   categories: z.string().array().min(1, { message: "Select at least one category." }),
-  city: z.string().optional(),
+  cities: z.string().array().optional().default([]),
   status: z.enum(["draft", "active", "completed"]),
+  initialBudget: z.coerce.number().optional(),
 });
 
 const categoryOptions = [
@@ -55,6 +56,8 @@ export default function EditCampaign() {
   const { campaigns, updateCampaign } = useData();
   const navigate = useNavigate();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [cityInput, setCityInput] = useState<string>("");
   const [loading, setLoading] = useState(true);
   
   const form = useForm<z.infer<typeof campaignSchema>>({
@@ -64,8 +67,9 @@ export default function EditCampaign() {
       description: "",
       minFollowers: 1000,
       categories: [],
-      city: "",
+      cities: [],
       status: "draft",
+      initialBudget: 0,
     },
   });
 
@@ -74,15 +78,19 @@ export default function EditCampaign() {
     if (campaignId) {
       const campaign = campaigns.find((c) => c.id === campaignId);
       if (campaign) {
+        // Parse cities from the comma-separated string
+        const cityList = campaign.city ? campaign.city.split(", ").filter(Boolean) : [];
+
         form.reset({
           title: campaign.title,
           description: campaign.description,
           minFollowers: campaign.minFollowers,
           categories: campaign.categories,
-          city: campaign.city || "",
+          cities: cityList,
           status: campaign.status,
         });
         setSelectedCategories(campaign.categories);
+        setSelectedCities(cityList);
         setLoading(false);
       } else {
         toast.error("Campaign not found");
@@ -100,7 +108,7 @@ export default function EditCampaign() {
         description: data.description,
         minFollowers: data.minFollowers,
         categories: selectedCategories,
-        city: data.city || "",
+        city: selectedCities.join(", "),
         status: data.status,
       });
       
@@ -120,6 +128,17 @@ export default function EditCampaign() {
 
   const handleRemoveCategory = (category: string) => {
     setSelectedCategories(selectedCategories.filter((c) => c !== category));
+  };
+  
+  const handleAddCity = () => {
+    if (cityInput && !selectedCities.includes(cityInput)) {
+      setSelectedCities([...selectedCities, cityInput]);
+      setCityInput("");
+    }
+  };
+
+  const handleRemoveCity = (city: string) => {
+    setSelectedCities(selectedCities.filter((c) => c !== city));
   };
 
   if (loading) {
@@ -195,20 +214,6 @@ export default function EditCampaign() {
                     </FormItem>
                   )}
                 />
-                
-                <FormField
-                  control={form.control}
-                  name="city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="City" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
               
               <FormField
@@ -244,6 +249,53 @@ export default function EditCampaign() {
                               <button
                                 type="button"
                                 onClick={() => handleRemoveCategory(category)}
+                                className="ml-2 text-secondary-foreground/70 hover:text-secondary-foreground"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="cities"
+                render={() => (
+                  <FormItem>
+                    <FormLabel>Cities (Optional)</FormLabel>
+                    <div className="space-y-2">
+                      <div className="flex space-x-2">
+                        <Input
+                          placeholder="Add a city"
+                          value={cityInput}
+                          onChange={(e) => setCityInput(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button 
+                          type="button" 
+                          onClick={handleAddCity}
+                          disabled={!cityInput}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      {selectedCities.length > 0 && (
+                        <div className="flex flex-wrap gap-2 pt-2">
+                          {selectedCities.map((city) => (
+                            <div
+                              key={city}
+                              className="flex items-center bg-secondary text-secondary-foreground rounded-md px-2 py-1 text-sm"
+                            >
+                              {city}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveCity(city)}
                                 className="ml-2 text-secondary-foreground/70 hover:text-secondary-foreground"
                               >
                                 ×

@@ -38,8 +38,9 @@ const campaignSchema = z.object({
   description: z.string().min(10, { message: "Please provide a detailed description." }),
   minFollowers: z.coerce.number().int().min(0),
   categories: z.string().array().min(1, { message: "Select at least one category." }),
-  city: z.string().optional(),
+  cities: z.string().array().optional().default([]),
   status: z.enum(["draft", "active", "completed"]),
+  initialBudget: z.coerce.number().min(0, { message: "Budget must be a positive number." }),
 });
 
 const categoryOptions = [
@@ -69,26 +70,32 @@ export default function NewCampaignDialog({ open, onOpenChange }: NewCampaignDia
       description: "",
       minFollowers: 1000,
       categories: [],
-      city: "",
+      cities: [],
       status: "draft",
+      initialBudget: 0,
     },
   });
 
   const [selectedCategories, setSelectedCategories] = React.useState<string[]>([]);
+  const [selectedCities, setSelectedCities] = React.useState<string[]>([]);
+  const [cityInput, setCityInput] = React.useState<string>("");
 
   const onSubmit = async (data: z.infer<typeof campaignSchema>) => {
     try {
-      await createCampaign({
+      const newCampaign = await createCampaign({
         title: data.title,
         description: data.description,
         minFollowers: data.minFollowers,
         categories: selectedCategories,
-        city: data.city || "",
+        city: selectedCities.join(", "),
         status: data.status,
+        initialBudget: data.initialBudget,
       });
       
       form.reset();
       setSelectedCategories([]);
+      setSelectedCities([]);
+      setCityInput("");
       onOpenChange(false);
       toast.success("Campaign created successfully");
     } catch (error) {
@@ -105,6 +112,17 @@ export default function NewCampaignDialog({ open, onOpenChange }: NewCampaignDia
 
   const handleRemoveCategory = (category: string) => {
     setSelectedCategories(selectedCategories.filter((c) => c !== category));
+  };
+  
+  const handleAddCity = () => {
+    if (cityInput && !selectedCities.includes(cityInput)) {
+      setSelectedCities([...selectedCities, cityInput]);
+      setCityInput("");
+    }
+  };
+
+  const handleRemoveCity = (city: string) => {
+    setSelectedCities(selectedCities.filter((c) => c !== city));
   };
 
   return (
@@ -146,23 +164,43 @@ export default function NewCampaignDialog({ open, onOpenChange }: NewCampaignDia
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="minFollowers"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Minimum Followers</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Minimum followers"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="minFollowers"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Minimum Followers</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Minimum followers"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="initialBudget"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Initial Budget</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Budget amount"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
             <FormField
               control={form.control}
@@ -213,13 +251,46 @@ export default function NewCampaignDialog({ open, onOpenChange }: NewCampaignDia
             
             <FormField
               control={form.control}
-              name="city"
-              render={({ field }) => (
+              name="cities"
+              render={() => (
                 <FormItem>
-                  <FormLabel>City (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="City" {...field} />
-                  </FormControl>
+                  <FormLabel>Cities (Optional)</FormLabel>
+                  <div className="space-y-2">
+                    <div className="flex space-x-2">
+                      <Input
+                        placeholder="Add a city"
+                        value={cityInput}
+                        onChange={(e) => setCityInput(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button 
+                        type="button" 
+                        onClick={handleAddCity}
+                        disabled={!cityInput}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    {selectedCities.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {selectedCities.map((city) => (
+                          <div
+                            key={city}
+                            className="flex items-center bg-secondary text-secondary-foreground rounded-md px-2 py-1 text-sm"
+                          >
+                            {city}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCity(city)}
+                              className="ml-2 text-secondary-foreground/70 hover:text-secondary-foreground"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

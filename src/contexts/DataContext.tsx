@@ -285,11 +285,34 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         city: data.city,
         categories: data.categories,
         status: data.status,
-        createdAt: data.created_at
+        createdAt: data.created_at,
+        initialBudget: campaignData.initialBudget
       };
       
       // Add to local state
       setCampaigns(prev => [...prev, newCampaign]);
+      
+      // If initialBudget is provided, create the first campaign phase
+      if (campaignData.initialBudget && campaignData.initialBudget > 0) {
+        try {
+          const phaseData = {
+            campaign_id: data.id,
+            phase_number: 1,
+            budget_amount: campaignData.initialBudget,
+            is_active: true
+          };
+          
+          const { error: phaseError } = await supabase
+            .from('campaign_phases')
+            .insert(phaseData);
+            
+          if (phaseError) {
+            console.error("Error creating campaign phase:", phaseError);
+          }
+        } catch (phaseError) {
+          console.error("Error creating campaign phase:", phaseError);
+        }
+      }
       
       return newCampaign;
     } catch (error) {
