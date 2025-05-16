@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -102,7 +101,7 @@ export default function InfluencerCampaigns() {
     
     try {
       setLoading(true);
-      await applyToCampaign(selectedCampaignId);
+      await applyToCampaign(selectedCampaignId, applicationText);
       toast({
         title: "Success",
         description: "Application submitted successfully!"
