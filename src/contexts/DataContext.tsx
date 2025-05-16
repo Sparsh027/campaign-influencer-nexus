@@ -643,7 +643,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (campaign.status !== 'active') return false;
       
       // Check if the user has already applied
-      if (hasApplied(campaign.id, user.dbId)) return false;
+      if (hasApplied(campaign.id)) return false;
       
       // We need to cast the user to InfluencerUser to access specific properties
       const influencer = user as InfluencerUser;

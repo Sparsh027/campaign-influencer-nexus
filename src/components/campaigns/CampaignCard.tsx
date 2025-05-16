@@ -12,7 +12,7 @@ interface CampaignCardProps {
   isAdmin?: boolean;
 }
 
-export function CampaignCard({ campaign, onApply, hasApplied, isAdmin = false }: CampaignCardProps) {
+export function CampaignCard({ campaign, onApply, hasApplied = false, isAdmin = false }: CampaignCardProps) {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
@@ -44,6 +44,12 @@ export function CampaignCard({ campaign, onApply, hasApplied, isAdmin = false }:
                   <Badge key={category} variant="outline">{category}</Badge>
                 ))}
               </div>
+            </div>
+          )}
+          
+          {campaign.initialBudget && (
+            <div className="text-sm mt-2">
+              <span className="font-medium">Budget:</span> ${campaign.initialBudget.toLocaleString()}
             </div>
           )}
         </div>
