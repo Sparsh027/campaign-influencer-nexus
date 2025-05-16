@@ -376,9 +376,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
   
   // Check if an influencer has applied to a campaign
-  const hasApplied = (campaignId: string, influencerId: string) => {
+  const hasApplied = (campaignId: string, influencerId?: string) => {
+    // Use provided influencer ID or fall back to the current user ID
+    const applicantId = influencerId || (user?.dbId || '');
+    if (!applicantId) return false;
+    
     return applications.some(app => 
-      app.campaignId === campaignId && app.influencerId === influencerId
+      app.campaignId === campaignId && app.influencerId === applicantId
     );
   };
   

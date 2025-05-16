@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,32 +37,38 @@ export default function InfluencerCampaigns() {
     }
   }, [user, navigate]);
   
-  // Determine eligible campaigns and filter based on search/filters
-  const eligibleCampaigns = useMemo(() => {
-    // Get campaigns the user is eligible for
-    const baseEligibleCampaigns = getEligibleCampaigns();
+  // Show all active campaigns, not just eligible ones
+  const activeCampaigns = useMemo(() => {
+    return campaigns.filter(campaign => campaign.status === 'active');
+  }, [campaigns]);
+  
+  // Add filtering to active campaigns
+  const filteredCampaigns = useMemo(() => {
+    let filtered = activeCampaigns;
     
-    // Apply search query filter
-    const searchedCampaigns = baseEligibleCampaigns.filter(
-      (campaign) => 
-        campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        campaign.description.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Apply search
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (campaign) => 
+          campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+          campaign.description.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
     
     // Apply category filter
-    const categoryFilteredCampaigns = selectedCategories.length > 0 
-      ? searchedCampaigns.filter(campaign => 
-          campaign.categories.some(category => selectedCategories.includes(category))
-        )
-      : searchedCampaigns;
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(campaign => 
+        campaign.categories.some(category => selectedCategories.includes(category))
+      );
+    }
     
     // Apply city filter
-    const cityFilteredCampaigns = selectedCity !== 'all'
-      ? categoryFilteredCampaigns.filter(campaign => campaign.city === selectedCity)
-      : categoryFilteredCampaigns;
+    if (selectedCity !== 'all') {
+      filtered = filtered.filter(campaign => campaign.city === selectedCity);
+    }
     
-    return cityFilteredCampaigns;
-  }, [getEligibleCampaigns, searchQuery, selectedCategories, selectedCity]);
+    return filtered;
+  }, [activeCampaigns, searchQuery, selectedCategories, selectedCity]);
   
   // Get all unique categories and cities from campaigns
   const allCategories = useMemo(() => {
@@ -179,9 +184,9 @@ export default function InfluencerCampaigns() {
         </ScrollArea>
       )}
       
-      {eligibleCampaigns.length > 0 ? (
+      {filteredCampaigns.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {eligibleCampaigns.map((campaign) => (
+          {filteredCampaigns.map((campaign) => (
             <CampaignCard
               key={campaign.id}
               campaign={campaign}
