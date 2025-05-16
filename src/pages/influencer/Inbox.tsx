@@ -123,15 +123,17 @@ export default function InfluencerInbox() {
   
   const handleMessageAdmin = async () => {
     try {
-      // Check if admin conversation exists, if not it will be created
-      await sendMessage('admin-1', 'Hello! I have a question about the platform.');
+      // Create or select admin conversation
       setSelectedContact('admin-1');
+      
+      // If we're on mobile, show the chat
       if (isMobile) {
         setShowContacts(false);
       }
+      
       toast({
-        title: "Message sent",
-        description: "Your message to the admin has been sent."
+        title: "Connected with admin",
+        description: "You can now message the admin"
       });
     } catch (error) {
       console.error('Error messaging admin:', error);
@@ -182,20 +184,18 @@ export default function InfluencerInbox() {
               {conversations.length > 0 ? (
                 <div>
                   {/* Add message admin button at the top */}
-                  {!conversations.some(c => c.id === 'admin-1') && (
-                    <div 
-                      className="flex items-center gap-3 p-3 cursor-pointer hover:bg-accent/50 border-b"
-                      onClick={handleMessageAdmin}
-                    >
-                      <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                        <MessageCircle className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium">Message Admin</p>
-                        <p className="text-xs text-muted-foreground">Start a new conversation</p>
-                      </div>
+                  <div 
+                    className="flex items-center gap-3 p-3 cursor-pointer hover:bg-accent/50 border-b"
+                    onClick={handleMessageAdmin}
+                  >
+                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                      <MessageCircle className="h-5 w-5 text-primary" />
                     </div>
-                  )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium">Message Admin</p>
+                      <p className="text-xs text-muted-foreground">Platform support</p>
+                    </div>
+                  </div>
                   
                   {conversations.map((conversation) => (
                     <div
