@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -190,7 +191,7 @@ export default function InfluencerCampaigns() {
             <CampaignCard
               key={campaign.id}
               campaign={campaign}
-              hasApplied={hasApplied(campaign.id)}
+              hasApplied={hasApplied(campaign.id, user?.dbId || '')}
               onApply={() => handleApplyToCampaign(campaign.id)}
             />
           ))}
