@@ -91,14 +91,19 @@ export default function NewCampaign() {
   };
 
   const handleAddCategory = (category: string) => {
-    if (!selectedCategories.includes(category)) {
-      setSelectedCategories([...selectedCategories, category]);
-    }
-  };
+  if (!selectedCategories.includes(category)) {
+    const updated = [...selectedCategories, category];
+    setSelectedCategories(updated);
+    form.setValue("categories", updated); 
+  }
+};
 
-  const handleRemoveCategory = (category: string) => {
-    setSelectedCategories(selectedCategories.filter((c) => c !== category));
-  };
+const handleRemoveCategory = (category: string) => {
+  const updated = selectedCategories.filter((c) => c !== category);
+  setSelectedCategories(updated);
+  form.setValue("categories", updated); 
+};
+
   
   const handleAddCity = () => {
     if (cityInput && !selectedCities.includes(cityInput)) {
