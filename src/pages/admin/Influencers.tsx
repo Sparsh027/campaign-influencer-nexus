@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,19 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Ban, Search, Trash2, User } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
-import { InfluencerUser } from '@/types/auth';
-import { toast } from '@/hooks/use-toast';
+import { User as UserType, InfluencerUser } from '@/types/auth';
 
 export default function AdminInfluencers() {
-  const { influencers, blockInfluencer, deleteInfluencer, fetchInfluencers } = useData();
+  const { influencers, blockInfluencer, deleteInfluencer } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInfluencer, setSelectedInfluencer] = useState<InfluencerUser | null>(null);
-  
-  // Fetch influencers on component mount
-  useEffect(() => {
-    fetchInfluencers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const filteredInfluencers = influencers.filter(influencer => 
     influencer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -32,17 +25,8 @@ export default function AdminInfluencers() {
     if (window.confirm('Are you sure you want to block this influencer?')) {
       try {
         await blockInfluencer(id);
-        toast({
-          title: "Success",
-          description: "Influencer has been blocked",
-        });
       } catch (error) {
         console.error('Block influencer error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to block influencer",
-          variant: "destructive"
-        });
       }
     }
   };
@@ -51,22 +35,11 @@ export default function AdminInfluencers() {
     if (window.confirm('Are you sure you want to delete this influencer? This cannot be undone.')) {
       try {
         await deleteInfluencer(id);
-        toast({
-          title: "Success",
-          description: "Influencer has been deleted",
-        });
       } catch (error) {
         console.error('Delete influencer error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to delete influencer",
-          variant: "destructive"
-        });
       }
     }
   };
-
-  console.log("Current influencers:", influencers);
 
   return (
     <div className="space-y-6">
@@ -86,7 +59,7 @@ export default function AdminInfluencers() {
       <div className="grid gap-6">
         {filteredInfluencers.length > 0 ? (
           filteredInfluencers.map((influencer) => (
-            <Card key={influencer.dbId} className="overflow-hidden">
+            <Card key={influencer.id} className="overflow-hidden">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-3">
@@ -102,10 +75,10 @@ export default function AdminInfluencers() {
                     <Button variant="ghost" size="icon" onClick={() => setSelectedInfluencer(influencer)}>
                       <User className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleBlock(influencer.dbId)}>
+                    <Button variant="ghost" size="icon" onClick={() => handleBlock(influencer.id)}>
                       <Ban className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(influencer.dbId)}>
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(influencer.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -212,7 +185,7 @@ export default function AdminInfluencers() {
                     </div>
                     <div className="flex justify-between border-b pb-1">
                       <span className="text-muted-foreground">Account Created:</span>
-                      <span>{new Date(selectedInfluencer.createdAt).toLocaleDateString()}</span>
+                      <span>May 11, 2025</span> {/* Mock date */}
                     </div>
                   </div>
                 </div>
@@ -236,7 +209,7 @@ export default function AdminInfluencers() {
               <div className="flex justify-between">
                 <Button 
                   variant="outline" 
-                  onClick={() => handleBlock(selectedInfluencer.dbId)}
+                  onClick={() => handleBlock(selectedInfluencer.id)}
                 >
                   <Ban className="mr-2 h-4 w-4" />
                   Block Influencer
@@ -244,7 +217,7 @@ export default function AdminInfluencers() {
                 <Button 
                   variant="destructive"
                   onClick={() => {
-                    handleDelete(selectedInfluencer.dbId);
+                    handleDelete(selectedInfluencer.id);
                     setSelectedInfluencer(null);
                   }}
                 >

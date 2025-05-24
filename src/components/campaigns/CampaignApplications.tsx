@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MessageSquare } from 'lucide-react';
+import { Check, X, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { InfluencerUser } from '@/types/auth';
 import { useNavigate } from 'react-router-dom';
@@ -65,7 +65,8 @@ export default function CampaignApplications({ campaignId }: CampaignApplication
   
   // Handle message
   const handleMessage = (influencerId: string) => {
-    navigate(`/admin/inbox?contact=${influencerId}`);
+    navigate('/admin/inbox');
+    // Ideally we'd navigate to the specific conversation
   };
   
   // Format date safely
@@ -91,9 +92,8 @@ export default function CampaignApplications({ campaignId }: CampaignApplication
                 <TableHead>Influencer</TableHead>
                 <TableHead>Instagram</TableHead>
                 <TableHead>Followers</TableHead>
-                <TableHead>Budget</TableHead>
-                <TableHead>Applied On</TableHead>
                 <TableHead>Categories</TableHead>
+                <TableHead>Applied On</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -106,34 +106,21 @@ export default function CampaignApplications({ campaignId }: CampaignApplication
                     <TableCell>{influencer?.instagram || '-'}</TableCell>
                     <TableCell>{influencer?.followerCount?.toLocaleString() || '-'}</TableCell>
                     <TableCell>
-                      {application.budgetAppliedFor 
-                        ? `₹${application.budgetAppliedFor.toLocaleString()}`
-                        : '-'
-                      }
-                      {application.isNegotiated && (
-                        <Badge variant="outline" className="ml-2">Negotiated</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {safeFormat(application.createdAt, 'MMM d, yyyy')}
-                    </TableCell>
-                    <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {influencer?.categories?.map((category) => (
                           <Badge key={category} variant="outline">{category}</Badge>
                         )) || '-'}
                       </div>
                     </TableCell>
+                    <TableCell>
+                      {safeFormat(application.createdAt, 'MMM d, yyyy')}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Select
                           disabled={updatingApplication === application.id}
+                          onValueChange={(value) => handleUpdateStatus(application.id, value as 'approved' | 'rejected')}
                           defaultValue={application.status}
-                          onValueChange={(value) => {
-                            if (value === 'approved' || value === 'rejected') {
-                              handleUpdateStatus(application.id, value);
-                            }
-                          }}
                         >
                           <SelectTrigger className="w-[110px]">
                             <SelectValue placeholder="Status" />

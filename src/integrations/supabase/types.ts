@@ -35,33 +35,24 @@ export type Database = {
       }
       applications: {
         Row: {
-          budget_applied_for: number | null
           campaign_id: string
           created_at: string
-          final_offer_amount: number | null
           id: string
           influencer_id: string
-          is_negotiated: boolean | null
           status: Database["public"]["Enums"]["application_status"] | null
         }
         Insert: {
-          budget_applied_for?: number | null
           campaign_id: string
           created_at?: string
-          final_offer_amount?: number | null
           id?: string
           influencer_id: string
-          is_negotiated?: boolean | null
           status?: Database["public"]["Enums"]["application_status"] | null
         }
         Update: {
-          budget_applied_for?: number | null
           campaign_id?: string
           created_at?: string
-          final_offer_amount?: number | null
           id?: string
           influencer_id?: string
-          is_negotiated?: boolean | null
           status?: Database["public"]["Enums"]["application_status"] | null
         }
         Relationships: [
@@ -77,41 +68,6 @@ export type Database = {
             columns: ["influencer_id"]
             isOneToOne: false
             referencedRelation: "influencers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      campaign_phases: {
-        Row: {
-          budget_amount: number
-          campaign_id: string
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          phase_number: number
-        }
-        Insert: {
-          budget_amount: number
-          campaign_id: string
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          phase_number: number
-        }
-        Update: {
-          budget_amount?: number
-          campaign_id?: string
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          phase_number?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "campaign_phases_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "campaigns"
             referencedColumns: ["id"]
           },
         ]
@@ -148,48 +104,6 @@ export type Database = {
           title?: string
         }
         Relationships: []
-      }
-      influencer_campaign_visibility: {
-        Row: {
-          assigned_phase: number | null
-          campaign_id: string
-          custom_offer_amount: number | null
-          id: string
-          influencer_id: string
-          negotiation_visible: boolean | null
-        }
-        Insert: {
-          assigned_phase?: number | null
-          campaign_id: string
-          custom_offer_amount?: number | null
-          id?: string
-          influencer_id: string
-          negotiation_visible?: boolean | null
-        }
-        Update: {
-          assigned_phase?: number | null
-          campaign_id?: string
-          custom_offer_amount?: number | null
-          id?: string
-          influencer_id?: string
-          negotiation_visible?: boolean | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "influencer_campaign_visibility_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "campaigns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "influencer_campaign_visibility_influencer_id_fkey"
-            columns: ["influencer_id"]
-            isOneToOne: false
-            referencedRelation: "influencers"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       influencers: {
         Row: {

@@ -9,11 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import EligibleInfluencers from '@/components/campaigns/EligibleInfluencers';
 import CampaignApplications from '@/components/campaigns/CampaignApplications';
 import ApprovedInfluencers from '@/components/campaigns/ApprovedInfluencers';
 import { Spinner } from '@/components/ui/spinner';
-import BudgetPhasesTab from '@/components/campaigns/BudgetPhasesTab';
-import EligibleInfluencersWithBudget from '@/components/campaigns/EligibleInfluencersWithBudget';
 
 export default function CampaignDetail() {
   const { campaignId } = useParams();
@@ -116,9 +115,6 @@ export default function CampaignDetail() {
       <Tabs defaultValue={activeTab} className="w-full" onValueChange={setActiveTab}>
         <div className="overflow-x-auto pb-2">
           <TabsList className="w-full sm:w-auto inline-flex">
-            <TabsTrigger value="budget" className="flex-1 sm:flex-initial whitespace-nowrap">
-              Budget Phases
-            </TabsTrigger>
             <TabsTrigger value="eligible" className="flex-1 sm:flex-initial whitespace-nowrap">
               Eligible Influencers 
               <Badge variant="outline" className="ml-2">{eligibleInfluencers.length}</Badge>
@@ -134,12 +130,8 @@ export default function CampaignDetail() {
           </TabsList>
         </div>
         
-        <TabsContent value="budget" className="mt-4 sm:mt-6">
-          <BudgetPhasesTab campaignId={campaignId as string} />
-        </TabsContent>
-        
         <TabsContent value="eligible" className="mt-4 sm:mt-6">
-          <EligibleInfluencersWithBudget campaignId={campaignId as string} />
+          <EligibleInfluencers campaignId={campaignId as string} />
         </TabsContent>
         
         <TabsContent value="applications" className="mt-4 sm:mt-6">

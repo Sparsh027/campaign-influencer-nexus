@@ -10,15 +10,11 @@ import { Spinner } from '@/components/ui/spinner';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useSearchParams } from 'react-router-dom';
 
 export default function AdminInbox() {
   const { user } = useAuth();
   const { conversations, influencers, messages, sendMessage, fetchMessages } = useData();
-  const [searchParams] = useSearchParams();
-  const contactFromUrl = searchParams.get('contact');
-  
-  const [selectedContact, setSelectedContact] = useState<string | null>(contactFromUrl);
+  const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
@@ -26,17 +22,15 @@ export default function AdminInbox() {
   const [showContacts, setShowContacts] = useState(!isMobile);
 
   // Get the selectedContactUser details
-  const selectedContactUser = influencers.find(i => i.dbId === selectedContact);
+  const selectedContactUser = influencers.find(i => i.id === selectedContact);
 
   // Select first conversation as default or when conversations change
   useEffect(() => {
-    if (contactFromUrl) {
-      setSelectedContact(contactFromUrl);
-    } else if (conversations.length > 0 && !selectedContact) {
+    if (conversations.length > 0 && !selectedContact) {
       setSelectedContact(conversations[0].id);
     }
     setLoading(false);
-  }, [conversations, selectedContact, contactFromUrl]);
+  }, [conversations, selectedContact]);
 
   // Toggle contacts visibility on mobile
   useEffect(() => {
@@ -50,17 +44,12 @@ export default function AdminInbox() {
       (msg.senderId === selectedContact && msg.receiverId === user?.dbId)
   ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-  console.log("Current conversationMessages:", conversationMessages);
-  console.log("Selected contact:", selectedContact);
-  console.log("User dbId:", user?.dbId);
-  console.log("All messages:", messages);
-
   // Initial load of messages
   useEffect(() => {
-    if (user?.dbId) {
+    if (user?.dbId && selectedContact) {
       fetchMessages();
     }
-  }, [user?.dbId, fetchMessages]);
+  }, [user?.dbId, selectedContact, fetchMessages]);
 
   // Scroll to bottom of messages - but only on new messages or initial load
   useEffect(() => {
@@ -172,9 +161,9 @@ export default function AdminInbox() {
                     <div
                       key={conversation.id}
                       className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-accent/50 ${
-                        selectedContact === conversation.participantId ? 'bg-accent' : ''
+                        selectedContact === conversation.id ? 'bg-accent' : ''
                       }`}
-                      onClick={() => handleContactSelect(conversation.participantId)}
+                      onClick={() => handleContactSelect(conversation.id)}
                     >
                       <div className="h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center">
                         <User className="h-5 w-5 text-brand-600" />

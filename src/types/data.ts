@@ -6,40 +6,20 @@ export interface Campaign {
   title: string;
   description: string;
   minFollowers: number;
-  city: string | null;
   categories: string[];
-  status: 'draft' | 'active' | 'completed'; // Removed 'archived' to match Supabase type
+  city: string;
   createdAt: string;
-  initialBudget?: number;
-}
-
-export interface CampaignPhase {
-  id: string;
-  campaignId: string;
-  phaseNumber: number;
-  budgetAmount: number;
-  isActive: boolean;
-  createdAt: string;
-}
-
-export interface InfluencerVisibility {
-  id: string;
-  influencerId: string;
-  campaignId: string;
-  assignedPhase: number | null;
-  negotiationVisible: boolean;
-  customOfferAmount: number | null;
+  status: 'active' | 'completed' | 'draft';
 }
 
 export interface Application {
   id: string;
   campaignId: string;
   influencerId: string;
-  budgetAppliedFor: number | null;
-  isNegotiated: boolean;
-  finalOfferAmount: number | null;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
+  campaign?: Campaign;
+  influencer?: User;
 }
 
 export interface Message {
@@ -51,25 +31,17 @@ export interface Message {
   content: string;
   read: boolean;
   createdAt: string;
+  sender?: User;
+  receiver?: User;
 }
 
 export interface Notification {
   id: string;
-  type: 'new_influencer' | 'new_application' | 'new_message' | 'application_approved' | 'application_rejected';
+  type: 'new_influencer' | 'new_application' | 'new_message';
   message: string;
   targetType: 'admin' | 'influencer';
   targetId: string;
-  userId: string;
+  userId: string; // Adding userId field to fix errors
   read: boolean;
   createdAt: string;
-}
-
-export interface Conversation {
-  id: string;
-  participantId: string;
-  participantType: 'admin' | 'influencer';
-  name: string;
-  messages: Message[];
-  lastMessage: Message | null;
-  unread: number;
 }

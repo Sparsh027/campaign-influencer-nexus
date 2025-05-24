@@ -1,223 +1,109 @@
 
 import React from 'react';
-import { useData } from '@/contexts/DataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { MessageCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
+import { useData } from '@/contexts/DataContext';
+import { MessageSquare } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Application, Campaign } from '@/types/data';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function InfluencerApplications() {
-  const { applications, campaigns } = useData();
+  const { user } = useAuth();
+  const { applications, campaigns, sendMessage } = useData();
   const navigate = useNavigate();
-  
-  // Helper to get campaign by ID
-  const getCampaign = (campaignId: string) => {
-    return campaigns.find(campaign => campaign.id === campaignId);
-  };
-  
-  // Handle messaging admin about a specific campaign
-  const handleMessageAdmin = (campaignId: string) => {
-    // Navigate to inbox with context about the campaign
-    navigate(`/influencer/inbox`);
-  };
-  
-  if (applications.length === 0) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">My Applications</h1>
-        
-        <Card>
-          <CardContent className="flex items-center justify-center p-12">
-            <p className="text-muted-foreground">
-              You haven't applied to any campaigns yet.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
-  // Format date safely
-  const safeFormat = (dateString: string, formatStr: string) => {
+  // Get user's applications with campaign details
+  const userApplications = applications
+    .filter(app => app.influencerId === user?.dbId)
+    .map(app => {
+      const campaign = campaigns.find(c => c.id === app.campaignId);
+      return { ...app, campaign };
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const handleContactAdmin = async (application: Application & { campaign?: Campaign }) => {
+    if (!application.campaign || !user) return;
+    
     try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return 'Invalid date';
+      // Get admin ID
+      const { data: adminData, error: adminError } = await supabase
+        .from('admins')
+        .select('id')
+        .single();
+        
+      if (adminError || !adminData) {
+        console.error('Error getting admin ID:', adminError);
+        return;
       }
-      return format(date, formatStr);
+      
+      // Send initial message
+      await sendMessage(adminData.id, `Hello, I'd like to discuss my application for the "${application.campaign.title}" campaign.`);
+      
+      // Navigate to inbox
+      navigate('/influencer/inbox');
     } catch (error) {
-      return 'Invalid date';
+      console.error('Error sending message:', error);
     }
   };
-  
-  // Get approved applications
-  const approvedApplications = applications.filter(app => app.status === 'approved');
-  const pendingApplications = applications.filter(app => app.status === 'pending');
-  const rejectedApplications = applications.filter(app => app.status === 'rejected');
-  
+
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">My Applications</h1>
-      
-      {approvedApplications.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Approved Applications</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Campaign</TableHead>
-                  <TableHead>Budget</TableHead>
-                  <TableHead>Approved On</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {approvedApplications.map((application) => {
-                  const campaign = getCampaign(application.campaignId);
-                  return (
-                    <TableRow key={application.id}>
-                      <TableCell className="font-medium">
-                        {campaign ? campaign.title : 'Unknown Campaign'}
-                      </TableCell>
-                      <TableCell>
-                        {application.budgetAppliedFor ? (
-                          <span>₹{application.budgetAppliedFor.toLocaleString()}</span>
-                        ) : (
-                          <span className="text-muted-foreground">Not specified</span>
-                        )}
-                        {application.isNegotiated && (
-                          <Badge variant="outline" className="ml-2">Negotiated</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {safeFormat(application.createdAt, 'PP')}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="success">
-                          Approved
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleMessageAdmin(application.campaignId)}
-                        >
-                          <MessageCircle className="h-4 w-4 mr-2" />
-                          Message Admin
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-      
-      {pendingApplications.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Pending Applications</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Campaign</TableHead>
-                  <TableHead>Budget</TableHead>
-                  <TableHead>Applied On</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pendingApplications.map((application) => {
-                  const campaign = getCampaign(application.campaignId);
-                  return (
-                    <TableRow key={application.id}>
-                      <TableCell className="font-medium">
-                        {campaign ? campaign.title : 'Unknown Campaign'}
-                      </TableCell>
-                      <TableCell>
-                        {application.budgetAppliedFor ? (
-                          <span>₹{application.budgetAppliedFor.toLocaleString()}</span>
-                        ) : (
-                          <span className="text-muted-foreground">Not specified</span>
-                        )}
-                        {application.isNegotiated && (
-                          <Badge variant="outline" className="ml-2">Negotiated</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {safeFormat(application.createdAt, 'PP')}
-                      </TableCell>
-                      <TableCell>
-                        <Badge>Pending Approval</Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-      
-      {rejectedApplications.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Rejected Applications</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Campaign</TableHead>
-                  <TableHead>Budget</TableHead>
-                  <TableHead>Applied On</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rejectedApplications.map((application) => {
-                  const campaign = getCampaign(application.campaignId);
-                  return (
-                    <TableRow key={application.id}>
-                      <TableCell className="font-medium">
-                        {campaign ? campaign.title : 'Unknown Campaign'}
-                      </TableCell>
-                      <TableCell>
-                        {application.budgetAppliedFor ? (
-                          <span>₹{application.budgetAppliedFor.toLocaleString()}</span>
-                        ) : (
-                          <span className="text-muted-foreground">Not specified</span>
-                        )}
-                        {application.isNegotiated && (
-                          <Badge variant="outline" className="ml-2">Negotiated</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {safeFormat(application.createdAt, 'PP')}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="destructive">Rejected</Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+      <h1 className="text-3xl font-bold tracking-tight">Your Applications</h1>
+
+      <div className="grid gap-6">
+        {userApplications.length > 0 ? (
+          userApplications.map((application) => (
+            <Card key={application.id}>
+              <CardHeader>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <CardTitle className="text-xl">{application.campaign?.title || 'Unknown Campaign'}</CardTitle>
+                  <Badge 
+                    variant={
+                      application.status === 'approved' ? 'default' :
+                      application.status === 'rejected' ? 'destructive' : 'outline'
+                    }
+                    className="capitalize"
+                  >
+                    {application.status}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {application.campaign && (
+                    <p className="text-sm">{application.campaign.description}</p>
+                  )}
+                  
+                  <div className="text-sm text-muted-foreground">
+                    Applied on {new Date(application.createdAt).toLocaleDateString('en-US', { 
+                      year: 'numeric', month: 'long', day: 'numeric' 
+                    })}
+                  </div>
+                  
+                  <div className="flex justify-end">
+                    <Button onClick={() => handleContactAdmin(application)}>
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Connect with Admin
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <Card className="flex flex-col items-center justify-center py-12">
+            <p className="text-muted-foreground mb-4">
+              You haven't applied to any campaigns yet.
+            </p>
+            <Link to="/influencer/campaigns">
+              <Button>Browse Campaigns</Button>
+            </Link>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

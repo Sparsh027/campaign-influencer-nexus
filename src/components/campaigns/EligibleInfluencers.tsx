@@ -150,13 +150,12 @@ export default function EligibleInfluencers({ campaignId }: EligibleInfluencersP
                         <Select
                           disabled={updatingInfluencer === influencer.dbId}
                           onValueChange={(value) => handleStatusChange(influencer.dbId, value)}
-                          defaultValue={applicationStatus || "none"}
+                          defaultValue={applicationStatus || ""}
                         >
                           <SelectTrigger className="w-[110px]">
                             <SelectValue placeholder="Set Status" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">Select...</SelectItem>
                             <SelectItem value="pending">Pending</SelectItem>
                             <SelectItem value="approved">Approve</SelectItem>
                             <SelectItem value="rejected">Reject</SelectItem>

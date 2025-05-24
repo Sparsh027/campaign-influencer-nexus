@@ -1,10 +1,11 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
-import { User, MessageCircle } from 'lucide-react';
+import { User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -34,14 +35,14 @@ export default function InfluencerInbox() {
     }
   }, [user?.dbId, fetchMessages]);
 
-  // Select admin as default if no conversation is selected
+  // Select admin as default if no conversation is selected and admin is in conversations
   useEffect(() => {
-    if (!selectedContact) {
-      // Always try to find admin conversation first
+    if (conversations.length > 0 && !selectedContact) {
+      // Try to find admin in conversations
       const adminConversation = conversations.find(c => c.id === 'admin-1');
       if (adminConversation) {
         setSelectedContact('admin-1');
-      } else if (conversations.length > 0) {
+      } else {
         // Otherwise select first conversation
         setSelectedContact(conversations[0].id);
       }
@@ -120,30 +121,6 @@ export default function InfluencerInbox() {
       setShowContacts(true);
     }
   };
-  
-  const handleMessageAdmin = async () => {
-    try {
-      // Create or select admin conversation
-      setSelectedContact('admin-1');
-      
-      // If we're on mobile, show the chat
-      if (isMobile) {
-        setShowContacts(false);
-      }
-      
-      toast({
-        title: "Connected with admin",
-        description: "You can now message the admin"
-      });
-    } catch (error) {
-      console.error('Error messaging admin:', error);
-      toast({
-        title: "Error",
-        description: "Failed to message admin. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
 
   // Format date safely
   const formatMessageTime = (dateString: string) => {
@@ -183,20 +160,6 @@ export default function InfluencerInbox() {
             <div className="flex-1 overflow-y-auto">
               {conversations.length > 0 ? (
                 <div>
-                  {/* Add message admin button at the top */}
-                  <div 
-                    className="flex items-center gap-3 p-3 cursor-pointer hover:bg-accent/50 border-b"
-                    onClick={handleMessageAdmin}
-                  >
-                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                      <MessageCircle className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium">Message Admin</p>
-                      <p className="text-xs text-muted-foreground">Platform support</p>
-                    </div>
-                  </div>
-                  
                   {conversations.map((conversation) => (
                     <div
                       key={conversation.id}
@@ -220,13 +183,10 @@ export default function InfluencerInbox() {
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full p-4">
-                  <p className="text-muted-foreground text-center mb-4">
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-muted-foreground text-center">
                     No conversations yet
                   </p>
-                  <Button onClick={handleMessageAdmin}>
-                    Message Admin
-                  </Button>
                 </div>
               )}
             </div>
@@ -235,7 +195,7 @@ export default function InfluencerInbox() {
 
         {/* Chat area - improved for mobile */}
         {(!isMobile || (isMobile && !showContacts)) && (
-          <Card className={`h-full flex flex-col overflow-hidden ${isMobile ? 'col-span-full h-[calc(100vh-130px)]' : 'md:col-span-2'}`}>
+          <Card className={`h-full flex flex-col overflow-hidden ${isMobile ? 'col-span-full h-[calc(100vh-150px)]' : 'md:col-span-2'}`}>
             {selectedContact ? (
               <>
                 {/* Chat header */}
@@ -255,12 +215,12 @@ export default function InfluencerInbox() {
                       <User className="h-5 w-5 text-brand-600" />
                     </div>
                     <CardTitle className="text-lg">
-                      {conversations.find(c => c.id === selectedContact)?.name || 'Admin'}
+                      {conversations.find(c => c.id === selectedContact)?.name || 'Unknown Contact'}
                     </CardTitle>
                   </div>
                 </CardHeader>
 
-                {/* Messages - fixed container with padding */}
+                {/* Messages - improved scrolling */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   {conversationMessages.length > 0 ? (
                     conversationMessages.map((msg) => {
@@ -274,12 +234,12 @@ export default function InfluencerInbox() {
                           <div
                             className={`max-w-[80%] rounded-lg px-4 py-2 ${
                               isOwnMessage
-                                ? 'bg-primary text-primary-foreground'
+                                ? 'bg-brand-500 text-white'
                                 : 'bg-muted text-foreground'
                             }`}
                           >
                             <p>{msg.content}</p>
-                            <p className={`text-xs mt-1 ${isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                            <p className={`text-xs mt-1 ${isOwnMessage ? 'text-brand-100' : 'text-muted-foreground'}`}>
                               {formatMessageTime(msg.createdAt)}
                             </p>
                           </div>
@@ -320,9 +280,9 @@ export default function InfluencerInbox() {
                 <div className="text-center">
                   <h2 className="text-lg font-medium mb-2">No conversations yet</h2>
                   <p className="text-muted-foreground mb-4">
-                    Start by messaging the admin.
+                    Start by applying to campaigns or messaging the admin.
                   </p>
-                  <Button onClick={handleMessageAdmin}>
+                  <Button onClick={() => sendMessage('admin-1', 'Hello! I have a question about the platform.')}>
                     Message Admin
                   </Button>
                 </div>
