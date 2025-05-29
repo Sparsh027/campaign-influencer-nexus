@@ -692,7 +692,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
              (!campaign.categories.length || campaign.categories.some(cat => 
                 influencerUser.categories?.includes(cat)
              )) &&
-             (!campaign.city || influencerUser.city === campaign.city);
+             (!campaign.city?.length || campaign.city.some(c =>
+  influencerUser.city?.toLowerCase().includes(c.toLowerCase())
+))
+
     });
   };
   
@@ -706,7 +709,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (!campaign.categories.length || campaign.categories.some(cat => 
         influencer.categories?.includes(cat)
       )) &&
-      (!campaign.city || influencer.city === campaign.city)
+      (!campaign.city?.length || campaign.city.some(c =>
+  influencer.city?.toLowerCase().includes(c.toLowerCase())
+))
+
     );
   };
   
@@ -731,7 +737,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
            (!campaign.categories.length || campaign.categories.some(cat => 
              influencerUser?.categories?.includes(cat)
            )) &&
-           (!campaign.city || influencerUser.city === campaign.city);
+           (!campaign.city?.length || campaign.city.some(c =>
+  influencerUser.city?.toLowerCase().includes(c.toLowerCase())
+))
   };
   
   // Check if current user has applied to a campaign
