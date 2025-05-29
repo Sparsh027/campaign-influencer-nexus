@@ -77,7 +77,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: c.description,
           minFollowers: c.min_followers,
           categories: c.categories || [],
-          city: c.city || '',
+          city: c.city || [],
           createdAt: c.created_at,
           status: c.status
         }));
@@ -151,7 +151,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: a.campaigns.description,
             minFollowers: a.campaigns.min_followers,
             categories: a.campaigns.categories || [],
-            city: a.campaigns.city || '',
+            city: a.campaigns.city || [],
             createdAt: a.campaigns.created_at,
             status: a.campaigns.status
           } : undefined;
@@ -348,7 +348,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: data.description,
           minFollowers: data.min_followers,
           categories: data.categories || [],
-          city: data.city || '',
+          city: data.city || [],
           createdAt: data.created_at,
           status: data.status
         };
