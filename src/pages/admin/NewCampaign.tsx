@@ -32,7 +32,7 @@ const campaignSchema = z.object({
   description: z.string().min(10, { message: "Please provide a detailed description." }),
   minFollowers: z.coerce.number().int().min(0),
   categories: z.string().array().min(1, { message: "Select at least one category." }),
-  city: z.string().optional(),
+  city: z.string().array().optional(),
   status: z.enum(["draft", "active", "completed"]),
 });
 
