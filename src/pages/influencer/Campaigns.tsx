@@ -113,7 +113,16 @@ export default function InfluencerCampaigns() {
                     {campaign.city && (
                       <div>
                         <p className="text-muted-foreground">City</p>
-                        <p className="font-medium">{campaign.city}</p>
+                        {Array.isArray(campaign.city) && campaign.city.length > 0 ? (
+  <div className="flex flex-wrap gap-1">
+    {campaign.city.map((c: string) => (
+      <Badge key={c} variant="outline">{c}</Badge>
+    ))}
+  </div>
+) : (
+  <p>Any</p>
+)}
+
                       </div>
                     )}
                     
