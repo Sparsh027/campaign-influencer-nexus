@@ -55,6 +55,7 @@ export default function EditCampaign() {
   const { campaigns, updateCampaign } = useData();
   const navigate = useNavigate();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   
   const form = useForm<z.infer<typeof campaignSchema>>({
