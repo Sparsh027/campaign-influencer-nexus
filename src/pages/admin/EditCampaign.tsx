@@ -71,47 +71,52 @@ export default function EditCampaign() {
   });
 
   // Load campaign data
-  useEffect(() => {
-    if (campaignId) {
-      const campaign = campaigns.find((c) => c.id === campaignId);
-      if (campaign) {
-        form.reset({
-          title: campaign.title,
-          description: campaign.description,
-          minFollowers: campaign.minFollowers,
-          categories: campaign.categories,
-          city: campaign.city || "",
-          status: campaign.status,
-        });
-        setSelectedCategories(campaign.categories);
-        setLoading(false);
-      } else {
-        toast.error("Campaign not found");
-        navigate('/admin/campaigns');
-      }
+useEffect(() => {
+  if (campaignId) {
+    const campaign = campaigns.find((c) => c.id === campaignId);
+    if (campaign) {
+      form.reset({
+        title: campaign.title,
+        description: campaign.description,
+        minFollowers: campaign.minFollowers,
+        categories: campaign.categories,
+        city: campaign.city || [],
+        status: campaign.status,
+      });
+      setSelectedCategories(campaign.categories);
+      setSelectedCities(campaign.city || []);
+      form.setValue('categories', campaign.categories);
+      form.setValue('city', campaign.city || []);
+      setLoading(false);
+    } else {
+      toast.error("Campaign not found");
+      navigate('/admin/campaigns');
     }
-  }, [campaignId, campaigns, form, navigate]);
+  }
+}, [campaignId, campaigns, form, navigate]);
+
 
   const onSubmit = async (data: z.infer<typeof campaignSchema>) => {
-    if (!campaignId) return;
-    
-    try {
-      await updateCampaign(campaignId, {
-        title: data.title,
-        description: data.description,
-        minFollowers: data.minFollowers,
-        categories: selectedCategories,
-        city: data.city || "",
-        status: data.status,
-      });
-      
-      toast.success("Campaign updated successfully");
-      navigate(`/admin/campaign/${campaignId}`);
-    } catch (error) {
-      console.error("Error updating campaign:", error);
-      toast.error("Failed to update campaign");
-    }
-  };
+  if (!campaignId) return;
+
+  try {
+    await updateCampaign(campaignId, {
+      title: data.title,
+      description: data.description,
+      minFollowers: data.minFollowers,
+      categories: selectedCategories,
+      city: selectedCities.length ? selectedCities : [],
+      status: data.status,
+    });
+
+    toast.success("Campaign updated successfully");
+    navigate(`/admin/campaign/${campaignId}`);
+  } catch (error) {
+    console.error("Error updating campaign:", error);
+    toast.error("Failed to update campaign");
+  }
+};
+
 
   const handleAddCategory = (category: string) => {
   if (!selectedCategories.includes(category)) {
@@ -210,15 +215,18 @@ const handleRemoveCategory = (category: string) => {
       <Input
         placeholder="Type a city and press Enter"
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-            e.preventDefault();
-            const value = e.currentTarget.value.trim();
-            if (!selectedCities.includes(value.toLowerCase())) {
-              setSelectedCities([...selectedCities, value.toLowerCase()]);
-            }
-            e.currentTarget.value = '';
-          }
-        }}
+  if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+    e.preventDefault();
+    const value = e.currentTarget.value.trim().toLowerCase();
+    if (!selectedCities.includes(value)) {
+      const updated = [...selectedCities, value];
+      setSelectedCities(updated);
+      form.setValue('city', updated);
+    }
+    e.currentTarget.value = '';
+  }
+}}
+
       />
       <div className="flex flex-wrap gap-2 mt-2">
         {selectedCities.map((city) => (
@@ -227,7 +235,11 @@ const handleRemoveCategory = (category: string) => {
             <button
               type="button"
               className="ml-2"
-              onClick={() => setSelectedCities(selectedCities.filter((c) => c !== city))}
+              onClick={() => {
+  const updated = selectedCities.filter((c) => c !== city);
+  setSelectedCities(updated);
+  form.setValue('city', updated);
+}}
             >
               ×
             </button>
