@@ -53,6 +53,8 @@ export default function NewCampaign() {
   const { createCampaign } = useData();
   const navigate = useNavigate();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
+
   
   const form = useForm<z.infer<typeof campaignSchema>>({
     resolver: zodResolver(campaignSchema),
@@ -61,29 +63,30 @@ export default function NewCampaign() {
       description: "",
       minFollowers: 1000,
       categories: [],
-      city: "",
+      city: [],
       status: "draft",
     },
   });
 
   const onSubmit = async (data: z.infer<typeof campaignSchema>) => {
-    try {
-      await createCampaign({
-        title: data.title,
-        description: data.description,
-        minFollowers: data.minFollowers,
-        categories: selectedCategories,
-        city: data.city || "",
-        status: data.status,
-      });
-      
-      toast.success("Campaign created successfully");
-      navigate('/admin/campaigns');
-    } catch (error) {
-      console.error("Error creating campaign:", error);
-      toast.error("Failed to create campaign");
-    }
-  };
+  try {
+    await createCampaign({
+      title: data.title,
+      description: data.description,
+      minFollowers: data.minFollowers,
+      categories: selectedCategories,
+      city: selectedCities.length ? selectedCities : [],
+      status: data.status,
+    });
+
+    toast.success("Campaign created successfully");
+    navigate('/admin/campaigns');
+  } catch (error) {
+    console.error("Error creating campaign:", error);
+    toast.error("Failed to create campaign");
+  }
+};
+
 
   const handleAddCategory = (category: string) => {
     if (!selectedCategories.includes(category)) {
