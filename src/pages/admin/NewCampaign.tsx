@@ -162,18 +162,42 @@ export default function NewCampaign() {
                 />
                 
                 <FormField
-                  control={form.control}
-                  name="city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="City" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+  control={form.control}
+  name="city"
+  render={() => (
+    <FormItem>
+      <FormLabel>Cities (Optional)</FormLabel>
+      <Input
+        placeholder="Type a city and press Enter"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+            e.preventDefault();
+            const value = e.currentTarget.value.trim();
+            if (!selectedCities.includes(value.toLowerCase())) {
+              setSelectedCities([...selectedCities, value.toLowerCase()]);
+            }
+            e.currentTarget.value = '';
+          }
+        }}
+      />
+      <div className="flex flex-wrap gap-2 mt-2">
+        {selectedCities.map((city) => (
+          <div key={city} className="bg-secondary rounded-md px-2 py-1 text-sm flex items-center">
+            {city}
+            <button
+              type="button"
+              className="ml-2"
+              onClick={() => setSelectedCities(selectedCities.filter((c) => c !== city))}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+    </FormItem>
+  )}
+/>
+
               </div>
               
               <FormField
