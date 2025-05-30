@@ -88,16 +88,7 @@ export default function CampaignDetail() {
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">City</p>
-              {Array.isArray(campaign.city) && campaign.city.length > 0 ? (
-  <div className="flex flex-wrap gap-1">
-    {campaign.city.map((c: string) => (
-      <Badge key={c} variant="outline">{c}</Badge>
-    ))}
-  </div>
-) : (
-  <p>Any</p>
-)}
-
+              <p className="mt-1">{campaign.city || 'Any location'}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Categories</p>

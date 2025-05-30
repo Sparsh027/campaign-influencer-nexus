@@ -33,7 +33,7 @@ const campaignSchema = z.object({
   description: z.string().min(10, { message: "Please provide a detailed description." }),
   minFollowers: z.coerce.number().int().min(0),
   categories: z.string().array().min(1, { message: "Select at least one category." }),
-  city: z.string().array().optional(),
+  city: z.string().optional(),
   status: z.enum(["draft", "active", "completed"]),
 });
 
@@ -55,7 +55,6 @@ export default function EditCampaign() {
   const { campaigns, updateCampaign } = useData();
   const navigate = useNavigate();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   
   const form = useForm<z.infer<typeof campaignSchema>>({
@@ -65,72 +64,63 @@ export default function EditCampaign() {
       description: "",
       minFollowers: 1000,
       categories: [],
-      city: [],
+      city: "",
       status: "draft",
     },
   });
 
   // Load campaign data
-useEffect(() => {
-  if (campaignId) {
-    const campaign = campaigns.find((c) => c.id === campaignId);
-    if (campaign) {
-      form.reset({
-        title: campaign.title,
-        description: campaign.description,
-        minFollowers: campaign.minFollowers,
-        categories: campaign.categories,
-        city: campaign.city || [],
-        status: campaign.status,
-      });
-      setSelectedCategories(campaign.categories);
-      setSelectedCities(campaign.city || []);
-      form.setValue('categories', campaign.categories);
-      form.setValue('city', campaign.city || []);
-      setLoading(false);
-    } else {
-      toast.error("Campaign not found");
-      navigate('/admin/campaigns');
+  useEffect(() => {
+    if (campaignId) {
+      const campaign = campaigns.find((c) => c.id === campaignId);
+      if (campaign) {
+        form.reset({
+          title: campaign.title,
+          description: campaign.description,
+          minFollowers: campaign.minFollowers,
+          categories: campaign.categories,
+          city: campaign.city || "",
+          status: campaign.status,
+        });
+        setSelectedCategories(campaign.categories);
+        setLoading(false);
+      } else {
+        toast.error("Campaign not found");
+        navigate('/admin/campaigns');
+      }
     }
-  }
-}, [campaignId, campaigns, form, navigate]);
-
+  }, [campaignId, campaigns, form, navigate]);
 
   const onSubmit = async (data: z.infer<typeof campaignSchema>) => {
-  if (!campaignId) return;
-
-  try {
-    await updateCampaign(campaignId, {
-      title: data.title,
-      description: data.description,
-      minFollowers: data.minFollowers,
-      categories: selectedCategories,
-      city: selectedCities.length ? selectedCities : [],
-      status: data.status,
-    });
-
-    toast.success("Campaign updated successfully");
-    navigate(`/admin/campaign/${campaignId}`);
-  } catch (error) {
-    console.error("Error updating campaign:", error);
-    toast.error("Failed to update campaign");
-  }
-};
-
+    if (!campaignId) return;
+    
+    try {
+      await updateCampaign(campaignId, {
+        title: data.title,
+        description: data.description,
+        minFollowers: data.minFollowers,
+        categories: selectedCategories,
+        city: data.city || "",
+        status: data.status,
+      });
+      
+      toast.success("Campaign updated successfully");
+      navigate(`/admin/campaign/${campaignId}`);
+    } catch (error) {
+      console.error("Error updating campaign:", error);
+      toast.error("Failed to update campaign");
+    }
+  };
 
   const handleAddCategory = (category: string) => {
-  if (!selectedCategories.includes(category)) {
-    const updated = [...selectedCategories, category];
-    setSelectedCategories(updated);
-    form.setValue('categories', updated); 
-  }
-};
+    if (!selectedCategories.includes(category)) {
+      setSelectedCategories([...selectedCategories, category]);
+    }
+  };
 
-const handleRemoveCategory = (category: string) => {
-  const updated = selectedCategories.filter((c) => c !== category);
-  setSelectedCategories(updated);
-  form.setValue('categories', updated); 
-};
+  const handleRemoveCategory = (category: string) => {
+    setSelectedCategories(selectedCategories.filter((c) => c !== category));
+  };
 
   if (loading) {
     return (
@@ -207,49 +197,18 @@ const handleRemoveCategory = (category: string) => {
                 />
                 
                 <FormField
-  control={form.control}
-  name="city"
-  render={() => (
-    <FormItem>
-      <FormLabel>Cities (Optional)</FormLabel>
-      <Input
-        placeholder="Type a city and press Enter"
-        onKeyDown={(e) => {
-  if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-    e.preventDefault();
-    const value = e.currentTarget.value.trim().toLowerCase();
-    if (!selectedCities.includes(value)) {
-      const updated = [...selectedCities, value];
-      setSelectedCities(updated);
-      form.setValue('city', updated);
-    }
-    e.currentTarget.value = '';
-  }
-}}
-
-      />
-      <div className="flex flex-wrap gap-2 mt-2">
-        {selectedCities.map((city) => (
-          <div key={city} className="bg-secondary rounded-md px-2 py-1 text-sm flex items-center">
-            {city}
-            <button
-              type="button"
-              className="ml-2"
-              onClick={() => {
-  const updated = selectedCities.filter((c) => c !== city);
-  setSelectedCities(updated);
-  form.setValue('city', updated);
-}}
-            >
-              ×
-            </button>
-          </div>
-        ))}
-      </div>
-    </FormItem>
-  )}
-/>
-
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="City" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
               
               <FormField

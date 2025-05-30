@@ -32,7 +32,7 @@ const campaignSchema = z.object({
   description: z.string().min(10, { message: "Please provide a detailed description." }),
   minFollowers: z.coerce.number().int().min(0),
   categories: z.string().array().min(1, { message: "Select at least one category." }),
-  city: z.string().array().optional(),
+  city: z.string().optional(),
   status: z.enum(["draft", "active", "completed"]),
 });
 
@@ -53,8 +53,6 @@ export default function NewCampaign() {
   const { createCampaign } = useData();
   const navigate = useNavigate();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedCities, setSelectedCities] = useState<string[]>([]);
-
   
   const form = useForm<z.infer<typeof campaignSchema>>({
     resolver: zodResolver(campaignSchema),
@@ -63,44 +61,39 @@ export default function NewCampaign() {
       description: "",
       minFollowers: 1000,
       categories: [],
-      city: [],
+      city: "",
       status: "draft",
     },
   });
 
   const onSubmit = async (data: z.infer<typeof campaignSchema>) => {
-  try {
-    await createCampaign({
-      title: data.title,
-      description: data.description,
-      minFollowers: data.minFollowers,
-      categories: selectedCategories,
-      city: selectedCities.length ? selectedCities : [],
-      status: data.status,
-    });
-
-    toast.success("Campaign created successfully");
-    navigate('/admin/campaigns');
-  } catch (error) {
-    console.error("Error creating campaign:", error);
-    toast.error("Failed to create campaign");
-  }
-};
-
+    try {
+      await createCampaign({
+        title: data.title,
+        description: data.description,
+        minFollowers: data.minFollowers,
+        categories: selectedCategories,
+        city: data.city || "",
+        status: data.status,
+      });
+      
+      toast.success("Campaign created successfully");
+      navigate('/admin/campaigns');
+    } catch (error) {
+      console.error("Error creating campaign:", error);
+      toast.error("Failed to create campaign");
+    }
+  };
 
   const handleAddCategory = (category: string) => {
-  if (!selectedCategories.includes(category)) {
-    const updated = [...selectedCategories, category];
-    setSelectedCategories(updated);
-    form.setValue('categories', updated); 
-  }
-};
+    if (!selectedCategories.includes(category)) {
+      setSelectedCategories([...selectedCategories, category]);
+    }
+  };
 
-const handleRemoveCategory = (category: string) => {
-  const updated = selectedCategories.filter((c) => c !== category);
-  setSelectedCategories(updated);
-  form.setValue('categories', updated); 
-};
+  const handleRemoveCategory = (category: string) => {
+    setSelectedCategories(selectedCategories.filter((c) => c !== category));
+  };
 
   return (
     <div className="space-y-6">
@@ -169,42 +162,18 @@ const handleRemoveCategory = (category: string) => {
                 />
                 
                 <FormField
-  control={form.control}
-  name="city"
-  render={() => (
-    <FormItem>
-      <FormLabel>Cities (Optional)</FormLabel>
-      <Input
-        placeholder="Type a city and press Enter"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-            e.preventDefault();
-            const value = e.currentTarget.value.trim();
-            if (!selectedCities.includes(value.toLowerCase())) {
-              setSelectedCities([...selectedCities, value.toLowerCase()]);
-            }
-            e.currentTarget.value = '';
-          }
-        }}
-      />
-      <div className="flex flex-wrap gap-2 mt-2">
-        {selectedCities.map((city) => (
-          <div key={city} className="bg-secondary rounded-md px-2 py-1 text-sm flex items-center">
-            {city}
-            <button
-              type="button"
-              className="ml-2"
-              onClick={() => setSelectedCities(selectedCities.filter((c) => c !== city))}
-            >
-              ×
-            </button>
-          </div>
-        ))}
-      </div>
-    </FormItem>
-  )}
-/>
-
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="City" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
               
               <FormField

@@ -77,7 +77,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: c.description,
           minFollowers: c.min_followers,
           categories: c.categories || [],
-          city: c.city || [],
+          city: c.city || '',
           createdAt: c.created_at,
           status: c.status
         }));
@@ -151,7 +151,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             description: a.campaigns.description,
             minFollowers: a.campaigns.min_followers,
             categories: a.campaigns.categories || [],
-            city: a.campaigns.city || [],
+            city: a.campaigns.city || '',
             createdAt: a.campaigns.created_at,
             status: a.campaigns.status
           } : undefined;
@@ -348,7 +348,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: data.description,
           minFollowers: data.min_followers,
           categories: data.categories || [],
-          city: data.city || [],
+          city: data.city || '',
           createdAt: data.created_at,
           status: data.status
         };
@@ -676,87 +676,63 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   
   // Get eligible campaigns for current influencer
- const getEligibleCampaigns = () => {
-  if (!user || user.role !== "influencer") return [];
-
-  const influencerUser = user as InfluencerUser;
-
-  return campaigns.filter(campaign => {
-    if (campaign.status !== 'active') return false;
-
-    return (
-      (influencerUser.followerCount || 0) >= campaign.minFollowers &&
-      (
-        !campaign.categories.length || 
-        (Array.isArray(influencerUser.categories) &&
-          campaign.categories.some(cat => influencerUser.categories!.includes(cat))
-        )
-      ) &&
-      (
-        !campaign.city?.length || 
-        (typeof influencerUser.city === 'string' &&
-          campaign.city.some(c => influencerUser.city!.toLowerCase().includes(c.toLowerCase()))
-        )
-      )
-    );
-  });
-};
+  const getEligibleCampaigns = () => {
+    if (!user || user.role !== "influencer") {
+      return [];
+    }
+    
+    const influencerUser = user as InfluencerUser;
+    
+    return campaigns.filter(campaign => {
+      // Only show active campaigns
+      if (campaign.status !== 'active') return false;
+      
+      // Check eligibility
+      return (influencerUser.followerCount || 0) >= campaign.minFollowers &&
+             (!campaign.categories.length || campaign.categories.some(cat => 
+                influencerUser.categories?.includes(cat)
+             )) &&
+             (!campaign.city || influencerUser.city === campaign.city);
+    });
+  };
   
   // Get eligible influencers for a specific campaign
-const getEligibleInfluencers = (campaignId: string) => {
-  const campaign = campaigns.find(c => c.id === campaignId);
-  if (!campaign) return [];
-
-  return influencers.filter(influencer => 
-    (influencer.followerCount || 0) >= campaign.minFollowers &&
-    (
-      !campaign.categories.length || 
-      (Array.isArray(influencer.categories) &&
-        campaign.categories.some(cat => influencer.categories!.includes(cat))
-      )
-    ) &&
-    (
-      !campaign.city?.length || 
-      (typeof influencer.city === 'string' &&
-        campaign.city.some(c => influencer.city!.toLowerCase().includes(c.toLowerCase()))
-      )
-    )
-  );
-};
+  const getEligibleInfluencers = (campaignId: string) => {
+    const campaign = campaigns.find(c => c.id === campaignId);
+    if (!campaign) return [];
+    
+    return influencers.filter(influencer => 
+      (influencer.followerCount || 0) >= campaign.minFollowers &&
+      (!campaign.categories.length || campaign.categories.some(cat => 
+        influencer.categories?.includes(cat)
+      )) &&
+      (!campaign.city || influencer.city === campaign.city)
+    );
+  };
   
   // Check if an influencer is eligible for a campaign
- const isInfluencerEligible = (campaignId: string, influencerId?: string) => {
-  const campaign = campaigns.find(c => c.id === campaignId);
-  if (!campaign) return false;
-
-  let influencerUser: InfluencerUser | null = null;
-
-  if (influencerId) {
-    const foundInfluencer = influencers.find(i => i.dbId === influencerId);
-    if (!foundInfluencer) return false;
-    influencerUser = foundInfluencer;
-  } else if (user?.role === "influencer") {
-    influencerUser = user as InfluencerUser;
-  }
-
-  if (!influencerUser) return false;
-
-  return (
-    (influencerUser.followerCount || 0) >= campaign.minFollowers &&
-    (
-      !campaign.categories.length || 
-      (Array.isArray(influencerUser.categories) &&
-        campaign.categories.some(cat => influencerUser.categories!.includes(cat))
-      )
-    ) &&
-    (
-      !campaign.city?.length || 
-      (typeof influencerUser.city === 'string' &&
-        campaign.city.some(c => influencerUser.city!.toLowerCase().includes(c.toLowerCase()))
-      )
-    )
-  );
-};
+  const isInfluencerEligible = (campaignId: string, influencerId?: string) => {
+    const campaign = campaigns.find(c => c.id === campaignId);
+    if (!campaign) return false;
+    
+    let influencerUser: InfluencerUser | null = null;
+    
+    if (influencerId) {
+      const foundInfluencer = influencers.find(i => i.dbId === influencerId);
+      if (!foundInfluencer) return false;
+      influencerUser = foundInfluencer;
+    } else if (user?.role === "influencer") {
+      influencerUser = user as InfluencerUser;
+    }
+      
+    if (!influencerUser) return false;
+    
+    return (influencerUser.followerCount || 0) >= campaign.minFollowers &&
+           (!campaign.categories.length || campaign.categories.some(cat => 
+             influencerUser?.categories?.includes(cat)
+           )) &&
+           (!campaign.city || influencerUser.city === campaign.city);
+  };
   
   // Check if current user has applied to a campaign
   const hasApplied = (campaignId: string, influencerId?: string) => {
